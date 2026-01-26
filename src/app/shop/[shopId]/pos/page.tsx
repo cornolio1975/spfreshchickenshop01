@@ -1,0 +1,221 @@
+'use client';
+
+import { useState } from 'react';
+import { Search, ShoppingCart, Trash2, Plus, Minus, Printer } from 'lucide-react';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { toast } from 'sonner';
+import {
+    Table,
+    TableBody,
+    TableCell,
+    TableHead,
+    TableHeader,
+    TableRow,
+} from "@/components/ui/table";
+
+// @ts-ignore
+import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { useEffect } from 'react';
+
+// Interface for Product
+interface Product {
+    id: string;
+    name: string;
+    base_price: number;
+    category: string;
+}
+
+export default function POSPage({ params }: { params: { shopId: string } }) {
+    const [cart, setCart] = useState<{ product: Product, quantity: number }[]>([]);
+    const [search, setSearch] = useState('');
+    const [products, setProducts] = useState<Product[]>([]);
+    const supabase = createClientComponentClient();
+
+    useEffect(() => {
+        const fetchProducts = async () => {
+            const { data, error } = await supabase
+                .from('products')
+                .select('*')
+                .ilike('name', `%${search}%`);
+
+            if (data) {
+                setProducts(data);
+            }
+        };
+        fetchProducts();
+    }, [search, supabase]);
+
+    const addToCart = (product: typeof products[0]) => {
+        setCart(prev => {
+            const existing = prev.find(item => item.product.id === product.id);
+            if (existing) {
+                return prev.map(item =>
+                    item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+                );
+            }
+            return [...prev, { product, quantity: 1 }];
+        });
+    };
+
+    const removeFromCart = (productId: string) => {
+        setCart(prev => prev.filter(item => item.product.id !== productId));
+    };
+
+    const updateQuantity = (productId: string, delta: number) => {
+        setCart(prev => prev.map(item => {
+            if (item.product.id === productId) {
+                const newQty = item.quantity + delta;
+                return newQty > 0 ? { ...item, quantity: newQty } : item;
+            }
+            return item;
+        }));
+    };
+
+    const total = cart.reduce((sum, item) => sum + (item.product.base_price * item.quantity), 0);
+
+    const handleCheckout = () => {
+        toast.success(`Order processed! Total: $${total.toFixed(2)}`);
+        setCart([]);
+    };
+
+    const handlePrint = () => {
+        window.print();
+    };
+
+    const filteredProducts = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
+
+    return (
+        <div className="flex h-[calc(100vh-120px)] gap-4 flex-col md:flex-row">
+            {/* Left: Product Table */}
+            <div className="flex-1 flex flex-col border border-border bg-card rounded-sm overflow-hidden print:hidden">
+                <div className="p-4 border-b border-border flex gap-4 items-center">
+                    <div className="relative flex-1 max-w-sm">
+                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            placeholder="Search by product name..."
+                            className="pl-8 h-9"
+                            value={search}
+                            onChange={(e) => setSearch(e.target.value)}
+                        />
+                    </div>
+                </div>
+
+                <div className="flex-1 overflow-auto">
+                    <Table>
+                        <TableHeader>
+                            <TableRow>
+                                <TableHead>Product Name</TableHead>
+                                <TableHead>Category</TableHead>
+                                <TableHead className="text-right">Unit Price</TableHead>
+                                <TableHead className="w-[100px]">Action</TableHead>
+                            </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                            {products.map((product) => (
+                                <TableRow key={product.id} className="hover:bg-muted/50">
+                                    <TableCell className="font-medium">{product.name}</TableCell>
+                                    <TableCell>{product.category}</TableCell>
+                                    <TableCell className="text-right">${product.base_price.toFixed(2)}</TableCell>
+                                    <TableCell>
+                                        <Button
+                                            size="sm"
+                                            variant="outline"
+                                            className="h-7 text-xs"
+                                            onClick={() => addToCart(product)}
+                                        >
+                                            Add
+                                        </Button>
+                                    </TableCell>
+                                </TableRow>
+                            ))}
+                        </TableBody>
+                    </Table>
+                </div>
+            </div>
+
+            {/* Right: Invoice / Cart */}
+            <div className="w-full md:w-[400px] flex flex-col border border-border bg-card rounded-sm print:w-full print:border-none">
+                <div className="p-4 border-b border-border bg-muted/20">
+                    <h2 className="font-bold flex items-center gap-2 uppercase tracking-wide text-sm">
+                        <ShoppingCart className="h-4 w-4" />
+                        Invoice / Order Summary
+                    </h2>
+                </div>
+
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 print:overflow-visible">
+                    {cart.length === 0 ? (
+                        <div className="text-center text-muted-foreground py-10 font-mono text-xs">
+                            [ NO ITEMS IN CART ]
+                        </div>
+                    ) : (
+                        <table className="w-full text-sm font-mono">
+                            <thead>
+                                <tr className="border-b border-border text-left">
+                                    <th className="py-2">Item</th>
+                                    <th className="py-2 text-right">Qty</th>
+                                    <th className="py-2 text-right">Total</th>
+                                    <th className="py-2 w-8 print:hidden"></th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {cart.map(item => (
+                                    <tr key={item.product.id} className="border-b border-border/50">
+                                        <td className="py-2">
+                                            <div className="font-medium">{item.product.name}</div>
+                                            <div className="text-xs text-muted-foreground">@ ${item.product.base_price.toFixed(2)}</div>
+                                        </td>
+                                        <td className="py-2 text-right">
+                                            <div className="flex items-center justify-end gap-1 print:hidden">
+                                                <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => updateQuantity(item.product.id, -1)}><Minus className="h-3 w-3" /></Button>
+                                                <span className="w-4 text-center">{item.quantity}</span>
+                                                <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => updateQuantity(item.product.id, 1)}><Plus className="h-3 w-3" /></Button>
+                                            </div>
+                                            <span className="hidden print:block">{item.quantity}</span>
+                                        </td>
+                                        <td className="py-2 text-right font-medium">
+                                            ${(item.product.base_price * item.quantity).toFixed(2)}
+                                        </td>
+                                        <td className="py-2 text-right print:hidden">
+                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destruct hover:text-destruct" onClick={() => removeFromCart(item.product.id)}>
+                                                <Trash2 className="h-3 w-3" />
+                                            </Button>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                    )}
+                </div>
+
+                {/* Totals Section */}
+                <div className="p-4 border-t border-border bg-muted/20">
+                    <div className="space-y-1 text-sm font-mono border-b border-border pb-4 mb-4">
+                        <div className="flex justify-between">
+                            <span className="text-muted-foreground">Subtotal:</span>
+                            <span>${total.toFixed(2)}</span>
+                        </div>
+                        <div className="flex justify-between">
+                            <span className="text-muted-foreground">Tax (0%):</span>
+                            <span>$0.00</span>
+                        </div>
+                        <div className="flex justify-between font-bold text-lg pt-2 border-t border-border/50">
+                            <span>TOTAL DUE:</span>
+                            <span>${total.toFixed(2)}</span>
+                        </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2 print:hidden">
+                        <Button variant="outline" onClick={handlePrint} disabled={cart.length === 0}>
+                            <Printer className="w-4 h-4 mr-2" />
+                            Print
+                        </Button>
+                        <Button onClick={handleCheckout} disabled={cart.length === 0} className="bg-primary text-primary-foreground hover:bg-primary/90">
+                            Checkout
+                        </Button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    );
+}
