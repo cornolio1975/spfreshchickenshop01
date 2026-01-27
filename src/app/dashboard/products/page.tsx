@@ -23,6 +23,7 @@ interface Product {
     category: string;
     base_price: number; // Note: DB column is base_price based on POS page
     stock_status: string;
+    unit_type: 'Kg' | 'Qty';
 }
 
 export default function ProductsPage() {
@@ -36,7 +37,8 @@ export default function ProductsPage() {
         name: '',
         category: '',
         base_price: '',
-        stock_status: 'In Stock'
+        stock_status: 'In Stock',
+        unit_type: 'Qty'
     });
 
     const fetchProducts = async () => {
@@ -62,7 +64,8 @@ export default function ProductsPage() {
                 name: product.name,
                 category: product.category || '',
                 base_price: product.base_price.toString(),
-                stock_status: product.stock_status || 'In Stock'
+                stock_status: product.stock_status || 'In Stock',
+                unit_type: product.unit_type || 'Qty'
             });
         } else {
             setEditingProduct(null);
@@ -70,7 +73,8 @@ export default function ProductsPage() {
                 name: '',
                 category: '',
                 base_price: '',
-                stock_status: 'In Stock'
+                stock_status: 'In Stock',
+                unit_type: 'Qty'
             });
         }
         setIsModalOpen(true);
@@ -88,7 +92,8 @@ export default function ProductsPage() {
             name: formData.name,
             category: formData.category,
             base_price: price, // Ensure this matches DB column (base_price vs price)
-            stock_status: formData.stock_status
+            stock_status: formData.stock_status,
+            unit_type: formData.unit_type
         };
 
         try {
@@ -147,6 +152,7 @@ export default function ProductsPage() {
                                 <TableRow>
                                     <TableHead>Name</TableHead>
                                     <TableHead>Category</TableHead>
+                                    <TableHead>Unit</TableHead>
                                     <TableHead>Base Price ($)</TableHead>
                                     <TableHead>Global Status</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
@@ -155,7 +161,7 @@ export default function ProductsPage() {
                             <TableBody>
                                 {products.length === 0 && !isLoading && (
                                     <TableRow>
-                                        <TableCell colSpan={5} className="text-center py-8 text-muted-foreground">
+                                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
                                             No products found. Add one to get started.
                                         </TableCell>
                                     </TableRow>
@@ -169,6 +175,7 @@ export default function ProductsPage() {
                                             </div>
                                         </TableCell>
                                         <TableCell>{product.category}</TableCell>
+                                        <TableCell>{product.unit_type || 'Qty'}</TableCell>
                                         <TableCell>{product.base_price?.toFixed(2)}</TableCell>
                                         <TableCell>
                                             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${product.stock_status === 'In Stock'
@@ -218,17 +225,31 @@ export default function ProductsPage() {
                                         placeholder="Chicken Breast"
                                     />
                                 </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="category">Category</Label>
-                                    <Input
-                                        id="category"
-                                        value={formData.category}
-                                        onChange={(e) => setFormData({ ...formData, category: e.target.value })}
-                                        placeholder="Raw, Parts, etc."
-                                    />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="category">Category</Label>
+                                        <Input
+                                            id="category"
+                                            value={formData.category}
+                                            onChange={(e) => setFormData({ ...formData, category: e.target.value })}
+                                            placeholder="Raw, Parts"
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="unit_type">Unit Type</Label>
+                                        <select
+                                            id="unit_type"
+                                            className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                            value={formData.unit_type}
+                                            onChange={(e) => setFormData({ ...formData, unit_type: e.target.value })}
+                                        >
+                                            <option value="Qty">Qty (Pcs)</option>
+                                            <option value="Kg">Weight (Kg)</option>
+                                        </select>
+                                    </div>
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="price">Base Price</Label>
+                                    <Label htmlFor="price">Base Price ({formData.unit_type === 'Kg' ? 'per Kg' : 'per Item'})</Label>
                                     <Input
                                         id="price"
                                         type="number"

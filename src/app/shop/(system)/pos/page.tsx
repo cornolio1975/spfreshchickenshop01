@@ -25,10 +25,12 @@ interface Product {
     name: string;
     base_price: number;
     category: string;
+    unit_type?: 'Kg' | 'Qty';
 }
 
 export default function POSPage() {
-    const [cart, setCart] = useState<{ product: Product, quantity: number }[]>([]);
+    // Allow quantity to be string for input handling (e.g. "1.")
+    const [cart, setCart] = useState<{ product: Product, quantity: number | string }[]>([]);
     const [search, setSearch] = useState('');
     const [products, setProducts] = useState<Product[]>([]);
     // const supabase = createClientComponentClient();
@@ -47,12 +49,12 @@ export default function POSPage() {
         fetchProducts();
     }, [search]);
 
-    const addToCart = (product: typeof products[0]) => {
+    const addToCart = (product: Product) => {
         setCart(prev => {
             const existing = prev.find(item => item.product.id === product.id);
             if (existing) {
                 return prev.map(item =>
-                    item.product.id === product.id ? { ...item, quantity: item.quantity + 1 } : item
+                    item.product.id === product.id ? { ...item, quantity: Number(item.quantity) + 1 } : item
                 );
             }
             return [...prev, { product, quantity: 1 }];
@@ -63,17 +65,30 @@ export default function POSPage() {
         setCart(prev => prev.filter(item => item.product.id !== productId));
     };
 
-    const updateQuantity = (productId: string, delta: number) => {
+    const setItemQuantity = (productId: string, value: string) => {
+        // Allow empty string or valid number format
+        if (value === '' || /^\d*\.?\d*$/.test(value)) {
+            setCart(prev => prev.map(item => {
+                if (item.product.id === productId) {
+                    return { ...item, quantity: value };
+                }
+                return item;
+            }));
+        }
+    };
+
+    const adjustQuantity = (product: Product, delta: number) => {
         setCart(prev => prev.map(item => {
-            if (item.product.id === productId) {
-                const newQty = item.quantity + delta;
-                return newQty > 0 ? { ...item, quantity: newQty } : item;
+            if (item.product.id === product.id) {
+                const current = Number(item.quantity) || 0;
+                const newQty = Math.max(0.1, parseFloat((current + delta).toFixed(2)));
+                return { ...item, quantity: newQty };
             }
             return item;
         }));
     };
 
-    const total = cart.reduce((sum, item) => sum + (item.product.base_price * item.quantity), 0);
+    const total = cart.reduce((sum, item) => sum + (item.product.base_price * (Number(item.quantity) || 0)), 0);
 
     const handleCheckout = () => {
         toast.success(`Order processed! Total: $${total.toFixed(2)}`);
@@ -115,9 +130,15 @@ export default function POSPage() {
                         <TableBody>
                             {products.map((product) => (
                                 <TableRow key={product.id} className="hover:bg-muted/50">
-                                    <TableCell className="font-medium">{product.name}</TableCell>
+                                    <TableCell className="font-medium">
+                                        {product.name}
+                                        {product.unit_type === 'Kg' && <span className="ml-2 text-xs text-muted-foreground border px-1 rounded">Kg</span>}
+                                    </TableCell>
                                     <TableCell>{product.category}</TableCell>
-                                    <TableCell className="text-right">${product.base_price.toFixed(2)}</TableCell>
+                                    <TableCell className="text-right">
+                                        ${product.base_price.toFixed(2)}
+                                        <span className="text-xs text-muted-foreground ml-1">/{product.unit_type || 'Qty'}</span>
+                                    </TableCell>
                                     <TableCell>
                                         <Button
                                             size="sm"
@@ -154,36 +175,51 @@ export default function POSPage() {
                             <thead>
                                 <tr className="border-b border-border text-left">
                                     <th className="py-2">Item</th>
-                                    <th className="py-2 text-right">Qty</th>
+                                    <th className="py-2 text-right">Qty/Wt</th>
                                     <th className="py-2 text-right">Total</th>
                                     <th className="py-2 w-8 print:hidden"></th>
                                 </tr>
                             </thead>
                             <tbody>
-                                {cart.map(item => (
-                                    <tr key={item.product.id} className="border-b border-border/50">
-                                        <td className="py-2">
-                                            <div className="font-medium">{item.product.name}</div>
-                                            <div className="text-xs text-muted-foreground">@ ${item.product.base_price.toFixed(2)}</div>
-                                        </td>
-                                        <td className="py-2 text-right">
-                                            <div className="flex items-center justify-end gap-1 print:hidden">
-                                                <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => updateQuantity(item.product.id, -1)}><Minus className="h-3 w-3" /></Button>
-                                                <span className="w-4 text-center">{item.quantity}</span>
-                                                <Button variant="ghost" size="icon" className="h-5 w-5" onClick={() => updateQuantity(item.product.id, 1)}><Plus className="h-3 w-3" /></Button>
-                                            </div>
-                                            <span className="hidden print:block">{item.quantity}</span>
-                                        </td>
-                                        <td className="py-2 text-right font-medium">
-                                            ${(item.product.base_price * item.quantity).toFixed(2)}
-                                        </td>
-                                        <td className="py-2 text-right print:hidden">
-                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destruct hover:text-destruct" onClick={() => removeFromCart(item.product.id)}>
-                                                <Trash2 className="h-3 w-3" />
-                                            </Button>
-                                        </td>
-                                    </tr>
-                                ))}
+                                {cart.map(item => {
+                                    const isKg = item.product.unit_type === 'Kg';
+                                    const step = isKg ? 0.1 : 1;
+                                    return (
+                                        <tr key={item.product.id} className="border-b border-border/50">
+                                            <td className="py-2">
+                                                <div className="font-medium">{item.product.name}</div>
+                                                <div className="text-xs text-muted-foreground">
+                                                    @ ${item.product.base_price.toFixed(2)} / {item.product.unit_type || 'Qty'}
+                                                </div>
+                                            </td>
+                                            <td className="py-2 text-right">
+                                                <div className="flex items-center justify-end gap-1 print:hidden">
+                                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => adjustQuantity(item.product, -step)}>
+                                                        <Minus className="h-3 w-3" />
+                                                    </Button>
+                                                    <Input
+                                                        type="text"
+                                                        className="w-16 h-7 text-center p-1 text-xs"
+                                                        value={item.quantity}
+                                                        onChange={(e) => setItemQuantity(item.product.id, e.target.value)}
+                                                    />
+                                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => adjustQuantity(item.product, step)}>
+                                                        <Plus className="h-3 w-3" />
+                                                    </Button>
+                                                </div>
+                                                <span className="hidden print:block">{item.quantity} {item.product.unit_type}</span>
+                                            </td>
+                                            <td className="py-2 text-right font-medium">
+                                                ${(item.product.base_price * (Number(item.quantity) || 0)).toFixed(2)}
+                                            </td>
+                                            <td className="py-2 text-right print:hidden">
+                                                <Button variant="ghost" size="icon" className="h-6 w-6 text-destruct hover:text-destruct" onClick={() => removeFromCart(item.product.id)}>
+                                                    <Trash2 className="h-3 w-3" />
+                                                </Button>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
                             </tbody>
                         </table>
                     )}

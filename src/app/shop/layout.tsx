@@ -15,8 +15,8 @@ export default function ShopLayout({ children }: { children: React.ReactNode }) 
                 <span className="font-bold">Fresh Chicken POS - Cashier Mode</span>
                 <div className="ml-auto flex items-center gap-4">
                     <span className="text-sm text-muted-foreground hidden md:inline-block">Shop: Main St</span>
-                    <Button variant="ghost" size="sm" asChild>
-                        <a href="/">Exit to Home</a>
+                    <Button variant="ghost" size="sm" onClick={() => window.location.href = '/'}>
+                        Exit to Home
                     </Button>
                 </div>
             </header>
