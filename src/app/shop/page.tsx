@@ -1,3 +1,5 @@
+export const dynamic = "force-static";
+
 'use client';
 
 import Link from 'next/link';
@@ -32,7 +34,7 @@ export default function ShopSelectPage() {
                         </CardHeader>
                         <CardContent>
                             <Link
-                                href={`/shop/${shop.id}/pos`}
+                                href={`/shop/pos?shopId=${shop.id}`}
                                 className="inline-flex items-center justify-center whitespace-nowrap rounded-md text-sm font-medium transition-colors focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-indigo-600 disabled:pointer-events-none disabled:opacity-50 bg-indigo-600 text-white hover:bg-indigo-700 shadow-sm h-9 px-4 py-2 w-full"
                             >
                                 Open POS <ArrowRight className="ml-2 h-4 w-4" />

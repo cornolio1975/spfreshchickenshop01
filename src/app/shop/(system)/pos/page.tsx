@@ -26,7 +26,7 @@ interface Product {
     category: string;
 }
 
-export default function POSPage({ params }: { params: { shopId: string } }) {
+export default function POSPage() {
     const [cart, setCart] = useState<{ product: Product, quantity: number }[]>([]);
     const [search, setSearch] = useState('');
     const [products, setProducts] = useState<Product[]>([]);
