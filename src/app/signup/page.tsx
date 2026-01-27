@@ -71,8 +71,15 @@ export default function SignupPage() {
         <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-900">
             <Card className="w-full max-w-md">
                 <CardHeader>
-                    <CardTitle>Create Account</CardTitle>
-                    <CardDescription>Register for Fresh Chicken Shop POS</CardDescription>
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <CardTitle>Create Account</CardTitle>
+                            <CardDescription>Register for Fresh Chicken Shop POS</CardDescription>
+                        </div>
+                        <Button variant="ghost" size="sm" onClick={() => router.push('/')}>
+                            Home
+                        </Button>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleSignup} className="space-y-4">
