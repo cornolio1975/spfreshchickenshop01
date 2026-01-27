@@ -33,6 +33,7 @@ export default function POSPage() {
     const [cart, setCart] = useState<{ product: Product, quantity: number | string }[]>([]);
     const [search, setSearch] = useState('');
     const [products, setProducts] = useState<Product[]>([]);
+    const [isCheckingOut, setIsCheckingOut] = useState(false);
     // const supabase = createClientComponentClient();
 
     useEffect(() => {
@@ -90,9 +91,51 @@ export default function POSPage() {
 
     const total = cart.reduce((sum, item) => sum + (item.product.base_price * (Number(item.quantity) || 0)), 0);
 
-    const handleCheckout = () => {
-        toast.success(`Order processed! Total: $${total.toFixed(2)}`);
-        setCart([]);
+    const handleCheckout = async () => {
+        if (cart.length === 0) return;
+        setIsCheckingOut(true);
+
+        try {
+            // 1. Create Sale Record
+            const { data: saleData, error: saleError } = await supabase
+                .from('sales')
+                .insert([
+                    {
+                        total_amount: total,
+                        payment_method: 'cash', // Default to cash for now
+                        status: 'completed'
+                    }
+                ])
+                .select()
+                .single();
+
+            if (saleError) throw saleError;
+            if (!saleData) throw new Error('Failed to create sale record');
+
+            // 2. Create Sale Items
+            const itemsToInsert = cart.map(item => ({
+                sale_id: saleData.id,
+                product_id: item.product.id,
+                product_name: item.product.name,
+                quantity: Number(item.quantity) || 0,
+                unit_price: item.product.base_price,
+                total_price: item.product.base_price * (Number(item.quantity) || 0)
+            }));
+
+            const { error: itemsError } = await supabase
+                .from('sale_items')
+                .insert(itemsToInsert);
+
+            if (itemsError) throw itemsError;
+
+            toast.success(`Sale recorded! ID: ${saleData.id.slice(0, 8)}`);
+            setCart([]);
+        } catch (error: any) {
+            console.error('Checkout error:', error);
+            toast.error(error.message || 'Failed to process checkout');
+        } finally {
+            setIsCheckingOut(false);
+        }
     };
 
     const handlePrint = () => {
@@ -247,8 +290,8 @@ export default function POSPage() {
                             <Printer className="w-4 h-4 mr-2" />
                             Print
                         </Button>
-                        <Button onClick={handleCheckout} disabled={cart.length === 0} className="bg-primary text-primary-foreground hover:bg-primary/90">
-                            Checkout
+                        <Button onClick={handleCheckout} disabled={cart.length === 0 || isCheckingOut} className="bg-primary text-primary-foreground hover:bg-primary/90">
+                            {isCheckingOut ? 'Processing...' : 'Checkout'}
                         </Button>
                     </div>
                 </div>
