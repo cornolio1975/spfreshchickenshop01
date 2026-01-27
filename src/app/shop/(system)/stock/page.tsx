@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { useParams } from "next/navigation";
 // @ts-ignore
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+// import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,7 +15,7 @@ export default function StockPage() {
     const shopId = params.shopId as string;
     const [search, setSearch] = useState("");
     const [products, setProducts] = useState<any[]>([]); // Replace 'any' with Product interface if available
-    const supabase = createClientComponentClient();
+    // const supabase = createClientComponentClient();
 
     useEffect(() => {
         const fetchProducts = async () => {
@@ -35,7 +36,7 @@ export default function StockPage() {
         };
 
         fetchProducts();
-    }, [search, supabase]);
+    }, [search]);
 
     return (
         <div className="p-8 space-y-8">

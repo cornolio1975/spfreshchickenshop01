@@ -1,7 +1,7 @@
+"use client";
+
 export const dynamic = "force-static";
 export const revalidate = false;
-
-"use client";
 
 import Link from "next/link";
 import DashboardLayout from "@/components/layout/DashboardLayout";

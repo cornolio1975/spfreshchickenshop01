@@ -15,7 +15,8 @@ import {
 } from "@/components/ui/table";
 
 // @ts-ignore
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+// import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '@/lib/supabase';
 import { useEffect } from 'react';
 
 // Interface for Product
@@ -30,7 +31,7 @@ export default function POSPage() {
     const [cart, setCart] = useState<{ product: Product, quantity: number }[]>([]);
     const [search, setSearch] = useState('');
     const [products, setProducts] = useState<Product[]>([]);
-    const supabase = createClientComponentClient();
+    // const supabase = createClientComponentClient();
 
     useEffect(() => {
         const fetchProducts = async () => {
@@ -44,7 +45,7 @@ export default function POSPage() {
             }
         };
         fetchProducts();
-    }, [search, supabase]);
+    }, [search]);
 
     const addToCart = (product: typeof products[0]) => {
         setCart(prev => {

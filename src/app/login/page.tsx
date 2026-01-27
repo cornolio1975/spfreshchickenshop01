@@ -1,11 +1,11 @@
+'use client';
+
 export const dynamic = "force-static";
 export const revalidate = false;
 
-
-'use client';
-
 // @ts-ignore
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+// import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { Button } from '@/components/ui/button';
@@ -19,7 +19,7 @@ export default function LoginPage() {
     const [password, setPassword] = useState('');
     const [loading, setLoading] = useState(false);
     const router = useRouter();
-    const supabase = createClientComponentClient();
+    // const supabase = createClientComponentClient();
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();

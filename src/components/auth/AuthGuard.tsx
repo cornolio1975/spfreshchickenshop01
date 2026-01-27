@@ -2,13 +2,12 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-// @ts-ignore
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '@/lib/supabase';
 import { Loader2 } from 'lucide-react';
 
 export default function AuthGuard({ children }: { children: React.ReactNode }) {
     const router = useRouter();
-    const supabase = createClientComponentClient();
+    // const supabase = createClientComponentClient();
     const [isLoading, setIsLoading] = useState(true);
 
     useEffect(() => {

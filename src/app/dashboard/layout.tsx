@@ -7,7 +7,7 @@ import { usePathname, useRouter } from 'next/navigation';
 import { LayoutDashboard, Store, Users, FileBarChart, LogOut, Menu, Package } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 // @ts-ignore
-import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
+import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 const sidebarItems = [
@@ -24,7 +24,7 @@ import AuthGuard from '@/components/auth/AuthGuard';
 export default function DashboardLayout({ children }: { children: React.ReactNode }) {
     const pathname = usePathname();
     const router = useRouter();
-    const supabase = createClientComponentClient();
+    // const supabase = createClientComponentClient();
     const [isMobileMenuOpen, setIsMobileMenuOpen] = React.useState(false);
 
     const handleLogout = async () => {
