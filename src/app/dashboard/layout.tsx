@@ -11,6 +11,7 @@ import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 
 const sidebarItems = [
+    { href: '/', label: 'Home / Landing', icon: Store },
     { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
     { href: '/dashboard/shops', label: 'Shops Management', icon: Store },
     { href: '/dashboard/products', label: 'Global Products', icon: Package },
