@@ -49,8 +49,15 @@ export default function LoginPage() {
         <div className="flex items-center justify-center min-h-screen bg-slate-50 dark:bg-slate-900">
             <Card className="w-full max-w-md">
                 <CardHeader>
-                    <CardTitle>Welcome Back</CardTitle>
-                    <CardDescription>Sign in to your account into Fresh Chicken Shop POS</CardDescription>
+                    <div className="flex justify-between items-start">
+                        <div>
+                            <CardTitle>Welcome Back</CardTitle>
+                            <CardDescription>Sign in to your account into Fresh Chicken Shop POS</CardDescription>
+                        </div>
+                        <Button variant="ghost" size="sm" onClick={() => router.push('/')}>
+                            Home
+                        </Button>
+                    </div>
                 </CardHeader>
                 <CardContent>
                     <form onSubmit={handleLogin} className="space-y-4">
