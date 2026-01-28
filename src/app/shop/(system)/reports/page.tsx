@@ -47,29 +47,30 @@ export default function ReportsPage() {
     };
 
     const calculateStats = (salesData: Sale[]) => {
+        const toMalaysiaDate = (dateStr: string) => {
+            return new Date(dateStr).toLocaleDateString('en-CA', { timeZone: 'Asia/Kuala_Lumpur' }); // YYYY-MM-DD in MY
+        };
+
         const now = new Date();
-        const todayStr = now.toISOString().slice(0, 10); // YYYY-MM-DD
-        const currentMonth = now.getMonth();
-        const currentYear = now.getFullYear();
+        const todayMY = now.toLocaleDateString('en-CA', { timeZone: 'Asia/Kuala_Lumpur' });
+        const currentMonthMY = now.toLocaleDateString('en-CA', { year: 'numeric', month: '2-digit', timeZone: 'Asia/Kuala_Lumpur' }).slice(0, 7); // YYYY-MM
+        const currentYearMY = now.toLocaleDateString('en-CA', { year: 'numeric', timeZone: 'Asia/Kuala_Lumpur' }); // YYYY
 
         let todayTotal = 0;
         let monthTotal = 0;
         let yearTotal = 0;
 
         salesData.forEach(sale => {
-            const saleDate = new Date(sale.created_at);
+            const saleDateMY = toMalaysiaDate(sale.created_at); // YYYY-MM-DD
+            const saleMonthMY = saleDateMY.slice(0, 7); // YYYY-MM
+            const saleYearMY = saleDateMY.slice(0, 4); // YYYY
             const amount = Number(sale.total_amount);
 
-            // Year
-            if (saleDate.getFullYear() === currentYear) {
+            if (saleYearMY === currentYearMY) {
                 yearTotal += amount;
-
-                // Month
-                if (saleDate.getMonth() === currentMonth) {
+                if (saleMonthMY === currentMonthMY) {
                     monthTotal += amount;
-
-                    // Today - Check YYYY-MM-DD match
-                    if (sale.created_at.startsWith(todayStr)) {
+                    if (saleDateMY === todayMY) {
                         todayTotal += amount;
                     }
                 }
@@ -84,6 +85,22 @@ export default function ReportsPage() {
         });
     };
 
+    const formatMYCurrency = (amount: number) => {
+        return `RM ${amount.toFixed(2)}`;
+    };
+
+    const formatMYDateTime = (dateStr: string) => {
+        return new Date(dateStr).toLocaleString('en-MY', {
+            timeZone: 'Asia/Kuala_Lumpur',
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric',
+            hour: '2-digit',
+            minute: '2-digit',
+            hour12: true
+        });
+    };
+
     return (
         <div className="p-8 space-y-8">
             <h1 className="text-3xl font-bold tracking-tight">Sales Reports</h1>
@@ -92,19 +109,21 @@ export default function ReportsPage() {
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">Today's Sales</CardTitle>
-                        <span className="text-gray-500 font-bold text-xs">{new Date().toLocaleDateString()}</span>
+                        <span className="text-gray-500 font-bold text-xs">
+                            {new Date().toLocaleDateString('en-MY', { timeZone: 'Asia/Kuala_Lumpur' })}
+                        </span>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">${stats.today.toFixed(2)}</div>
+                        <div className="text-2xl font-bold">{formatMYCurrency(stats.today)}</div>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium">This Month</CardTitle>
-                        <span className="text-gray-500 font-bold text-xs">{new Date().toLocaleString('default', { month: 'long' })}</span>
+                        <span className="text-gray-500 font-bold text-xs">{new Date().toLocaleString('en-MY', { month: 'long', timeZone: 'Asia/Kuala_Lumpur' })}</span>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">${stats.month.toFixed(2)}</div>
+                        <div className="text-2xl font-bold">{formatMYCurrency(stats.month)}</div>
                     </CardContent>
                 </Card>
                 <Card>
@@ -113,7 +132,7 @@ export default function ReportsPage() {
                         <span className="text-gray-500 font-bold text-xs">{new Date().getFullYear()}</span>
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">${stats.year.toFixed(2)}</div>
+                        <div className="text-2xl font-bold">{formatMYCurrency(stats.year)}</div>
                     </CardContent>
                 </Card>
             </div>
@@ -135,11 +154,11 @@ export default function ReportsPage() {
                                         <div className="space-y-1">
                                             <p className="text-sm font-medium leading-none">Order #{sale.id.slice(0, 8)}</p>
                                             <p className="text-xs text-muted-foreground">
-                                                {new Date(sale.created_at).toLocaleString()}
+                                                {formatMYDateTime(sale.created_at)}
                                             </p>
                                         </div>
                                         <div className="font-bold">
-                                            ${sale.total_amount.toFixed(2)}
+                                            {formatMYCurrency(sale.total_amount)}
                                         </div>
                                     </div>
                                 ))}

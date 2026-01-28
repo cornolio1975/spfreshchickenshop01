@@ -153,7 +153,7 @@ export default function ProductsPage() {
                                     <TableHead>Name</TableHead>
                                     <TableHead>Category</TableHead>
                                     <TableHead>Unit</TableHead>
-                                    <TableHead>Base Price ($)</TableHead>
+                                    <TableHead>Base Price (RM)</TableHead>
                                     <TableHead>Global Status</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
@@ -249,7 +249,7 @@ export default function ProductsPage() {
                                     </div>
                                 </div>
                                 <div className="grid gap-2">
-                                    <Label htmlFor="price">Base Price ({formData.unit_type === 'Kg' ? 'per Kg' : 'per Item'})</Label>
+                                    <Label htmlFor="price">Base Price (RM) ({formData.unit_type === 'Kg' ? 'per Kg' : 'per Item'})</Label>
                                     <Input
                                         id="price"
                                         type="number"

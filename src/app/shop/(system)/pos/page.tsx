@@ -128,7 +128,7 @@ export default function POSPage() {
 
             if (itemsError) throw itemsError;
 
-            toast.success(`Sale recorded! ID: ${saleData.id.slice(0, 8)}`);
+            toast.success(`Order processed! Total: RM ${total.toFixed(2)}`);
             setCart([]);
         } catch (error: any) {
             console.error('Checkout error:', error);
@@ -169,7 +169,7 @@ export default function POSPage() {
                             <TableRow>
                                 <TableHead>Product Name</TableHead>
                                 <TableHead>Category</TableHead>
-                                <TableHead className="text-right">Unit Price</TableHead>
+                                <TableHead className="text-right">Unit Price (RM)</TableHead>
                                 <TableHead className="w-[100px]">Action</TableHead>
                             </TableRow>
                         </TableHeader>
@@ -182,7 +182,7 @@ export default function POSPage() {
                                     </TableCell>
                                     <TableCell>{product.category}</TableCell>
                                     <TableCell className="text-right">
-                                        ${product.base_price.toFixed(2)}
+                                        RM {product.base_price.toFixed(2)}
                                         <span className="text-xs text-muted-foreground ml-1">/{product.unit_type || 'Qty'}</span>
                                     </TableCell>
                                     <TableCell>
@@ -235,7 +235,7 @@ export default function POSPage() {
                                             <td className="py-2">
                                                 <div className="font-medium">{item.product.name}</div>
                                                 <div className="text-xs text-muted-foreground">
-                                                    @ ${item.product.base_price.toFixed(2)} / {item.product.unit_type || 'Qty'}
+                                                    @ RM {item.product.base_price.toFixed(2)} / {item.product.unit_type || 'Qty'}
                                                 </div>
                                             </td>
                                             <td className="py-2 text-right">
@@ -256,7 +256,7 @@ export default function POSPage() {
                                                 <span className="hidden print:block">{item.quantity} {item.product.unit_type}</span>
                                             </td>
                                             <td className="py-2 text-right font-medium">
-                                                ${(item.product.base_price * (Number(item.quantity) || 0)).toFixed(2)}
+                                                RM {(item.product.base_price * (Number(item.quantity) || 0)).toFixed(2)}
                                             </td>
                                             <td className="py-2 text-right print:hidden">
                                                 <Button variant="ghost" size="icon" className="h-6 w-6 text-destruct hover:text-destruct" onClick={() => removeFromCart(item.product.id)}>
@@ -276,15 +276,15 @@ export default function POSPage() {
                     <div className="space-y-1 text-sm font-mono border-b border-border pb-4 mb-4">
                         <div className="flex justify-between">
                             <span className="text-muted-foreground">Subtotal:</span>
-                            <span>${total.toFixed(2)}</span>
+                            <span>RM {total.toFixed(2)}</span>
                         </div>
                         <div className="flex justify-between">
                             <span className="text-muted-foreground">Tax (0%):</span>
-                            <span>$0.00</span>
+                            <span>RM 0.00</span>
                         </div>
                         <div className="flex justify-between font-bold text-lg pt-2 border-t border-border/50">
                             <span>TOTAL DUE:</span>
-                            <span>${total.toFixed(2)}</span>
+                            <span>RM {total.toFixed(2)}</span>
                         </div>
                     </div>
 
