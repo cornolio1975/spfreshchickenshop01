@@ -126,23 +126,33 @@ export default function POSPage() {
                 .single();
 
             if (saleError) throw saleError;
-            if (!saleData) throw new Error('Failed to create sale record');
 
-            // 2. Create Sale Items
-            const itemsToInsert = cart.map(item => ({
-                sale_id: saleData.id,
-                product_id: item.product.id,
-                product_name: item.product.name,
-                quantity: Number(item.quantity) || 0,
-                unit_price: item.product.base_price,
-                total_price: item.product.base_price * (Number(item.quantity) || 0)
-            }));
+            // 2. Create Sale Items & Deduct Stock
+            for (const item of cart) {
+                const qty = Number(item.quantity) || 0;
 
-            const { error: itemsError } = await supabase
-                .from('sale_items')
-                .insert(itemsToInsert);
+                // A. Insert Sale Item
+                const { error: itemError } = await supabase
+                    .from('sale_items')
+                    .insert([{
+                        sale_id: saleData.id,
+                        product_id: item.product.id,
+                        product_name: item.product.name,
+                        quantity: qty,
+                        unit_price: item.product.base_price,
+                        total_price: item.product.base_price * qty
+                    }]);
 
-            if (itemsError) throw itemsError;
+                if (itemError) console.error('Error saving item:', itemError);
+
+                // B. Deduct Stock (Fetch current first to be safe, or use RPC if available. Using fetch-update for simplicity)
+                // Ideally this should be a DB trigger or RPC.
+                const { data: currentProd } = await supabase.from('products').select('stock').eq('id', item.product.id).single();
+                const currentStock = Number(currentProd?.stock) || 0;
+                const newStock = currentStock - qty;
+
+                await supabase.from('products').update({ stock: newStock }).eq('id', item.product.id);
+            }
 
             toast.success(`Order processed! Total: RM ${total.toFixed(2)}`);
             setCart([]);

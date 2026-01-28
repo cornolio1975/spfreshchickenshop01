@@ -19,36 +19,38 @@ export default function ReportsPage() {
         today: 0,
         month: 0,
         year: 0,
+        todayCost: 0,
+        monthCost: 0,
+        yearCost: 0,
         totalTransactions: 0
     });
 
     useEffect(() => {
-        fetchSales();
+        fetchAllData();
     }, []);
 
-    const fetchSales = async () => {
+    const fetchAllData = async () => {
         setIsLoading(true);
-        // Fetch all sales order by date desc. 
-        // optimize: For production, we would filter by date range in query or use a materialized view.
-        // For this scale, client side calc is fine.
-        const { data, error } = await supabase
-            .from('sales')
-            .select('id, total_amount, created_at')
-            .order('created_at', { ascending: false });
 
-        if (error) {
-            console.error(error);
-            toast.error('Failed to load sales data');
+        // Parallel Fetch: Sales & Purchases
+        const [salesRes, purchasesRes] = await Promise.all([
+            supabase.from('sales').select('id, total_amount, created_at').order('created_at', { ascending: false }),
+            supabase.from('purchases').select('id, total_cost, created_at') // created_at or purchase_date? Using created_at for now to match sales logic
+        ]);
+
+        if (salesRes.error || purchasesRes.error) {
+            console.error(salesRes.error, purchasesRes.error);
+            toast.error('Failed to load data');
         } else {
-            setSales(data || []);
-            calculateStats(data || []);
+            setSales(salesRes.data || []);
+            calculateStats(salesRes.data || [], purchasesRes.data || []);
         }
         setIsLoading(false);
     };
 
-    const calculateStats = (salesData: Sale[]) => {
+    const calculateStats = (salesData: Sale[], purchaseData: any[]) => {
         const toMalaysiaDate = (dateStr: string) => {
-            return new Date(dateStr).toLocaleDateString('en-CA', { timeZone: 'Asia/Kuala_Lumpur' }); // YYYY-MM-DD in MY
+            return new Date(dateStr).toLocaleDateString('en-CA', { timeZone: 'Asia/Kuala_Lumpur' }); // YYYY-MM-DD
         };
 
         const now = new Date();
@@ -60,10 +62,11 @@ export default function ReportsPage() {
         let monthTotal = 0;
         let yearTotal = 0;
 
+        // Sales Aggregation
         salesData.forEach(sale => {
-            const saleDateMY = toMalaysiaDate(sale.created_at); // YYYY-MM-DD
-            const saleMonthMY = saleDateMY.slice(0, 7); // YYYY-MM
-            const saleYearMY = saleDateMY.slice(0, 4); // YYYY
+            const saleDateMY = toMalaysiaDate(sale.created_at);
+            const saleMonthMY = saleDateMY.slice(0, 7);
+            const saleYearMY = saleDateMY.slice(0, 4);
             const amount = Number(sale.total_amount);
 
             if (saleYearMY === currentYearMY) {
@@ -77,10 +80,35 @@ export default function ReportsPage() {
             }
         });
 
+        // Purchases Aggregation
+        let todayCost = 0;
+        let monthCost = 0;
+        let yearCost = 0;
+
+        purchaseData.forEach(p => {
+            const pDateMY = toMalaysiaDate(p.created_at);
+            const pMonthMY = pDateMY.slice(0, 7);
+            const pYearMY = pDateMY.slice(0, 4);
+            const cost = Number(p.total_cost);
+
+            if (pYearMY === currentYearMY) {
+                yearCost += cost;
+                if (pMonthMY === currentMonthMY) {
+                    monthCost += cost;
+                    if (pDateMY === todayMY) {
+                        todayCost += cost;
+                    }
+                }
+            }
+        })
+
         setStats({
             today: todayTotal,
             month: monthTotal,
             year: yearTotal,
+            todayCost,
+            monthCost,
+            yearCost,
             totalTransactions: salesData.length
         });
     };
@@ -103,15 +131,31 @@ export default function ReportsPage() {
 
     return (
         <div className="p-8 space-y-8">
-            <h1 className="text-3xl font-bold tracking-tight">Sales Reports</h1>
+            <h1 className="text-3xl font-bold tracking-tight">Sales & Profit Reports</h1>
 
-            <div className="grid gap-4 md:grid-cols-3">
+            {/* Daily Net Profit Highlight */}
+            <div className="grid gap-4 md:grid-cols-4">
+                <Card className="bg-primary/5 border-primary/20">
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-primary">Today's Net Profit</CardTitle>
+                        <span className="text-primary/70 font-bold text-xs">
+                            (Sales - Purchases)
+                        </span>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-primary">
+                            {formatMYCurrency(stats.today - stats.todayCost)}
+                        </div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            Revenue: {formatMYCurrency(stats.today)} <br />
+                            Cost: {formatMYCurrency(stats.todayCost)}
+                        </p>
+                    </CardContent>
+                </Card>
+
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">Today's Sales</CardTitle>
-                        <span className="text-gray-500 font-bold text-xs">
-                            {new Date().toLocaleDateString('en-MY', { timeZone: 'Asia/Kuala_Lumpur' })}
-                        </span>
+                        <CardTitle className="text-sm font-medium">Today's Revenue</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{formatMYCurrency(stats.today)}</div>
@@ -119,17 +163,18 @@ export default function ReportsPage() {
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">This Month</CardTitle>
-                        <span className="text-gray-500 font-bold text-xs">{new Date().toLocaleString('en-MY', { month: 'long', timeZone: 'Asia/Kuala_Lumpur' })}</span>
+                        <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{formatMYCurrency(stats.month)}</div>
+                        <p className="text-xs text-muted-foreground mt-1">
+                            Net: {formatMYCurrency(stats.month - stats.monthCost)}
+                        </p>
                     </CardContent>
                 </Card>
                 <Card>
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                        <CardTitle className="text-sm font-medium">This Year</CardTitle>
-                        <span className="text-gray-500 font-bold text-xs">{new Date().getFullYear()}</span>
+                        <CardTitle className="text-sm font-medium">Yearly Revenue</CardTitle>
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold">{formatMYCurrency(stats.year)}</div>

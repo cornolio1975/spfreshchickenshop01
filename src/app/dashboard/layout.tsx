@@ -4,7 +4,7 @@ import * as React from 'react';
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Store, Users, FileBarChart, LogOut, Menu, Package } from 'lucide-react';
+import { LayoutDashboard, Store, Users, FileBarChart, LogOut, Menu, Package, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 // @ts-ignore
 import { supabase } from '@/lib/supabase';
@@ -15,9 +15,9 @@ const sidebarItems = [
     { href: '/dashboard', label: 'Overview', icon: LayoutDashboard },
     { href: '/dashboard/shops', label: 'Shops Management', icon: Store },
     { href: '/dashboard/products', label: 'Global Products', icon: Package },
+    { href: '/dashboard/vendors', label: 'Vendor Management', icon: Truck },
     { href: '/dashboard/inventory', label: 'Inventory Level', icon: FileBarChart },
     { href: '/dashboard/users', label: 'User Access', icon: Users },
-    //    { href: '/dashboard/reports', label: 'Reports', icon: FileBarChart },
 ];
 
 import AuthGuard from '@/components/auth/AuthGuard';
