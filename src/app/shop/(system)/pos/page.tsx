@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, ShoppingCart, Trash2, Plus, Minus, Printer, Home } from 'lucide-react';
+import { Search, ShoppingCart, Trash2, Plus, Minus, Printer, Home, Calendar } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -34,6 +34,16 @@ export default function POSPage() {
     const [search, setSearch] = useState('');
     const [products, setProducts] = useState<Product[]>([]);
     const [isCheckingOut, setIsCheckingOut] = useState(false);
+
+    // Date Selection State (Defaults to Today in YYYY-MM-DD)
+    const [saleDate, setSaleDate] = useState(() => {
+        const now = new Date();
+        const malaysiaTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kuala_Lumpur' }));
+        const year = malaysiaTime.getFullYear();
+        const month = String(malaysiaTime.getMonth() + 1).padStart(2, '0');
+        const day = String(malaysiaTime.getDate()).padStart(2, '0');
+        return `${year}-${month}-${day}`;
+    });
     // const supabase = createClientComponentClient();
 
     useEffect(() => {
@@ -96,6 +106,11 @@ export default function POSPage() {
         setIsCheckingOut(true);
 
         try {
+            // Construct Timestamp with selected date and current time (to preserve ordering or just default to chosen day)
+            // We append current time to keep some order, but the date part comes from input.
+            const now = new Date();
+            const finalDate = new Date(`${saleDate}T${now.toTimeString().split(' ')[0]}`);
+
             // 1. Create Sale Record
             const { data: saleData, error: saleError } = await supabase
                 .from('sales')
@@ -103,7 +118,8 @@ export default function POSPage() {
                     {
                         total_amount: total,
                         payment_method: 'cash', // Default to cash for now
-                        status: 'completed'
+                        status: 'completed',
+                        created_at: finalDate.toISOString()
                     }
                 ])
                 .select()
@@ -152,6 +168,18 @@ export default function POSPage() {
                     <Button variant="outline" size="icon" onClick={() => window.location.href = '/'} title="Go Home">
                         <Home className="h-4 w-4" />
                     </Button>
+
+                    {/* Date Picker */}
+                    <div className="relative">
+                        <Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                        <Input
+                            type="date"
+                            className="pl-9 h-9 w-[160px]"
+                            value={saleDate}
+                            onChange={(e) => setSaleDate(e.target.value)}
+                        />
+                    </div>
+
                     <div className="relative flex-1 max-w-sm">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
