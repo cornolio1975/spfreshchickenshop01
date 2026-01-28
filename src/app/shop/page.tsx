@@ -53,9 +53,14 @@ export default function ShopSelectPage() {
 
     return (
         <div className="container max-w-4xl py-10 space-y-8">
-            <div className="space-y-2">
-                <h1 className="text-3xl font-bold tracking-tight">Select Shop</h1>
-                <p className="text-muted-foreground">Choose a location to open the Point of Sale (POS) system.</p>
+            <div className="flex items-center justify-between">
+                <div className="space-y-2">
+                    <h1 className="text-3xl font-bold tracking-tight">Select Shop</h1>
+                    <p className="text-muted-foreground">Choose a location to open the Point of Sale (POS) system.</p>
+                </div>
+                <Link href="/dashboard/shops">
+                    <Button variant="outline">Manage Shops</Button>
+                </Link>
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
