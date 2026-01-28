@@ -21,8 +21,9 @@ interface Product {
     id: string;
     name: string;
     category: string;
-    base_price: number; // Note: DB column is base_price based on POS page
+    base_price: number;
     stock_status: string;
+    stock: number; // Added stock
     unit_type: 'Kg' | 'Qty';
 }
 
@@ -37,6 +38,7 @@ export default function ProductsPage() {
         name: '',
         category: '',
         base_price: '',
+        stock: '', // Added stock state
         stock_status: 'In Stock',
         unit_type: 'Qty'
     });
@@ -64,6 +66,7 @@ export default function ProductsPage() {
                 name: product.name,
                 category: product.category || '',
                 base_price: product.base_price.toString(),
+                stock: product.stock?.toString() || '0', // Populate stock
                 stock_status: product.stock_status || 'In Stock',
                 unit_type: product.unit_type || 'Qty'
             });
@@ -73,6 +76,7 @@ export default function ProductsPage() {
                 name: '',
                 category: '',
                 base_price: '',
+                stock: '0', // Default stock
                 stock_status: 'In Stock',
                 unit_type: 'Qty'
             });
@@ -83,6 +87,8 @@ export default function ProductsPage() {
     const handleSave = async (e: React.FormEvent) => {
         e.preventDefault();
         const price = parseFloat(formData.base_price);
+        const stockQty = parseFloat(formData.stock); // Parse stock
+
         if (isNaN(price)) {
             toast.error('Invalid price');
             return;
@@ -91,7 +97,8 @@ export default function ProductsPage() {
         const payload = {
             name: formData.name,
             category: formData.category,
-            base_price: price, // Ensure this matches DB column (base_price vs price)
+            base_price: price,
+            stock: isNaN(stockQty) ? 0 : stockQty, // Save stock
             stock_status: formData.stock_status,
             unit_type: formData.unit_type
         };
@@ -154,6 +161,7 @@ export default function ProductsPage() {
                                     <TableHead>Category</TableHead>
                                     <TableHead>Unit</TableHead>
                                     <TableHead>Base Price (RM)</TableHead>
+                                    <TableHead>Stock</TableHead> {/* New Column */}
                                     <TableHead>Global Status</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
@@ -161,7 +169,7 @@ export default function ProductsPage() {
                             <TableBody>
                                 {products.length === 0 && !isLoading && (
                                     <TableRow>
-                                        <TableCell colSpan={6} className="text-center py-8 text-muted-foreground">
+                                        <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
                                             No products found. Add one to get started.
                                         </TableCell>
                                     </TableRow>
@@ -177,6 +185,7 @@ export default function ProductsPage() {
                                         <TableCell>{product.category}</TableCell>
                                         <TableCell>{product.unit_type || 'Qty'}</TableCell>
                                         <TableCell>{product.base_price?.toFixed(2)}</TableCell>
+                                        <TableCell>{Number(product.stock || 0).toFixed(2)}</TableCell> {/* Display Stock */}
                                         <TableCell>
                                             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${product.stock_status === 'In Stock'
                                                 ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
@@ -248,17 +257,31 @@ export default function ProductsPage() {
                                         </select>
                                     </div>
                                 </div>
-                                <div className="grid gap-2">
-                                    <Label htmlFor="price">Base Price (RM) ({formData.unit_type === 'Kg' ? 'per Kg' : 'per Item'})</Label>
-                                    <Input
-                                        id="price"
-                                        type="number"
-                                        step="0.01"
-                                        required
-                                        value={formData.base_price}
-                                        onChange={(e) => setFormData({ ...formData, base_price: e.target.value })}
-                                        placeholder="0.00"
-                                    />
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="price">Base Price (RM)</Label>
+                                        <Input
+                                            id="price"
+                                            type="number"
+                                            step="0.01"
+                                            required
+                                            value={formData.base_price}
+                                            onChange={(e) => setFormData({ ...formData, base_price: e.target.value })}
+                                            placeholder="0.00"
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label htmlFor="stock">Current Stock</Label> {/* Stock Input */}
+                                        <Input
+                                            id="stock"
+                                            type="number"
+                                            step="0.01"
+                                            required
+                                            value={formData.stock}
+                                            onChange={(e) => setFormData({ ...formData, stock: e.target.value })}
+                                            placeholder="0.00"
+                                        />
+                                    </div>
                                 </div>
                                 <div className="grid gap-2">
                                     <Label htmlFor="status">Global Stock Status</Label>

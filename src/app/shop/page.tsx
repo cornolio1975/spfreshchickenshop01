@@ -1,6 +1,6 @@
 'use client';
 
-export const dynamic = "force-static";
+// export const dynamic = "force-static";
 
 import Link from 'next/link';
 import { Store, ArrowRight, Loader2 } from 'lucide-react';
