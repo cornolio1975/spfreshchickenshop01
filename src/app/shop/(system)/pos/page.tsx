@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, ShoppingCart, Trash2, Plus, Minus, Printer } from 'lucide-react';
+import { Search, ShoppingCart, Trash2, Plus, Minus, Printer, Home } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -148,7 +148,10 @@ export default function POSPage() {
         <div className="flex h-[calc(100vh-120px)] gap-4 flex-col md:flex-row">
             {/* Left: Product Table */}
             <div className="flex-1 flex flex-col border border-border bg-card rounded-sm overflow-hidden print:hidden">
-                <div className="p-4 border-b border-border flex gap-4 items-center">
+                <div className="p-4 border-b border-border flex gap-2 items-center">
+                    <Button variant="outline" size="icon" onClick={() => window.location.href = '/'} title="Go Home">
+                        <Home className="h-4 w-4" />
+                    </Button>
                     <div className="relative flex-1 max-w-sm">
                         <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
                         <Input
