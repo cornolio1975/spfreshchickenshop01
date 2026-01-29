@@ -33,12 +33,7 @@ export default function Home() {
                         href="/dashboard/products"
                         icon={<Package className="w-8 h-8 text-primary" />}
                     />
-                    <DashboardCard
-                        title="Customer Database"
-                        description="View customer history and details."
-                        href="/dashboard/customers"
-                        icon={<Users className="w-8 h-8 text-primary" />}
-                    />
+
                 </div>
 
                 <div className="bg-muted/20 border border-border p-6 rounded-sm">

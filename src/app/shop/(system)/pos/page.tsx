@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Search, ShoppingCart, Trash2, Plus, Minus, Printer, Home, Calendar } from 'lucide-react';
+import { Search, ShoppingCart, Trash2, Plus, Minus, Printer, Home, Calendar, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { toast } from 'sonner';
@@ -12,7 +12,11 @@ import {
     TableHead,
     TableHeader,
     TableRow,
+    TableHeader,
+    TableRow,
 } from "@/components/ui/table";
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
 
 // @ts-ignore
 // import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
@@ -28,12 +32,31 @@ interface Product {
     unit_type?: 'Kg' | 'Qty';
 }
 
+
+// Interface for Vendor
+interface Vendor {
+    id: string;
+    name: string;
+}
+
 export default function POSPage() {
     // Allow quantity to be string for input handling (e.g. "1.")
     const [cart, setCart] = useState<{ product: Product, quantity: number | string }[]>([]);
     const [search, setSearch] = useState('');
     const [products, setProducts] = useState<Product[]>([]);
+    const [vendors, setVendors] = useState<Vendor[]>([]); // New Vendor State
     const [isCheckingOut, setIsCheckingOut] = useState(false);
+    const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false); // Modal State
+
+    // Purchase Form State
+    const [purchaseData, setPurchaseData] = useState({
+        vendor_id: '',
+        product_id: '',
+        quantity: '',
+        unit_cost: '',
+        remarks: ''
+    });
+
 
     // Date Selection State (Defaults to Today in YYYY-MM-DD)
     const [saleDate, setSaleDate] = useState(() => {
@@ -56,6 +79,10 @@ export default function POSPage() {
             if (data) {
                 setProducts(data);
             }
+
+            // Fetch Vendors
+            const { data: vendData } = await supabase.from('vendors').select('id, name').eq('status', 'Active').order('name');
+            if (vendData) setVendors(vendData);
         };
         fetchProducts();
     }, [search]);
@@ -168,6 +195,73 @@ export default function POSPage() {
         window.print();
     };
 
+    const handlePurchase = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const qty = Number(purchaseData.quantity);
+        const cost = Number(purchaseData.unit_cost);
+        const total = qty * cost;
+
+        if (!purchaseData.vendor_id || !purchaseData.product_id || qty <= 0) {
+            toast.error('Please fill all required fields');
+            return;
+        }
+
+        try {
+            // 1. Create Purchase Header
+            const { data: purchase, error: pError } = await supabase
+                .from('purchases')
+                .insert([{
+                    vendor_id: purchaseData.vendor_id,
+                    total_cost: total,
+                    remarks: `${purchaseData.remarks} (via POS)`
+                }])
+                .select()
+                .single();
+
+            if (pError) throw pError;
+
+            // 2. Create Purchase Item
+            const { error: iError } = await supabase
+                .from('purchase_items')
+                .insert([{
+                    purchase_id: purchase.id,
+                    product_id: purchaseData.product_id,
+                    quantity: qty,
+                    unit_cost: cost,
+                    total_cost: total
+                }]);
+
+            if (iError) throw iError;
+
+            // 3. Update Product Stock (Increment)
+            const product = products.find(p => p.id === purchaseData.product_id);
+            const currentStock = Number(product?.base_price * 0 === 0 ? (product as any).stock : 0) || 0; // Type safety hack or need update interface
+            // Actually let's just fetch fresh to be safe or assuming local update
+            const { data: currentProd } = await supabase.from('products').select('stock').eq('id', purchaseData.product_id).single();
+            const freshStock = Number(currentProd?.stock) || 0;
+            const newStock = freshStock + qty;
+
+            const { error: stockError } = await supabase
+                .from('products')
+                .update({ stock: newStock })
+                .eq('id', purchaseData.product_id);
+
+            if (stockError) throw stockError;
+
+            toast.success('Stock Added Successfully');
+            setIsPurchaseModalOpen(false);
+            setPurchaseData({ vendor_id: '', product_id: '', quantity: '', unit_cost: '', remarks: '' });
+            // trigger refresh logic if needed, simplify by re-fetching
+            const { data: newData } = await supabase.from('products').select('*').ilike('name', `%${search}%`);
+            if (newData) setProducts(newData);
+
+        } catch (error: any) {
+            console.error(error);
+            toast.error(error.message || 'Failed to record purchase');
+        }
+    };
+
+
     const filteredProducts = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
 
     return (
@@ -177,6 +271,9 @@ export default function POSPage() {
                 <div className="p-4 border-b border-border flex gap-2 items-center">
                     <Button variant="outline" size="icon" onClick={() => window.location.href = '/'} title="Go Home">
                         <Home className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" onClick={() => setIsPurchaseModalOpen(true)} title="Stock In (Purchase)">
+                        <Truck className="h-4 w-4" />
                     </Button>
 
                     {/* Date Picker */}
@@ -337,6 +434,84 @@ export default function POSPage() {
                     </div>
                 </div>
             </div>
+            {/* Purchase Modal */}
+            <PurchaseModal
+                isOpen={isPurchaseModalOpen}
+                onClose={() => setIsPurchaseModalOpen(false)}
+                onSubmit={handlePurchase}
+                vendors={vendors}
+                products={products}
+                data={purchaseData}
+                setData={setPurchaseData}
+            />
+        </div>
+    );
+}
+
+// Sub-component for Modal to restart scope if needed or just inline
+function PurchaseModal({ isOpen, onClose, onSubmit, vendors, products, data, setData }: any) {
+    if (!isOpen) return null;
+    return (
+        <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+            <Card className="w-full max-w-lg bg-background shadow-lg">
+                <CardHeader>
+                    <CardTitle>Stock In (Record Purchase)</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <form onSubmit={onSubmit} className="space-y-4">
+                        <div className="grid gap-2">
+                            <Label>Select Vendor</Label>
+                            <select
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                value={data.vendor_id}
+                                onChange={(e) => setData({ ...data, vendor_id: e.target.value })}
+                                required
+                            >
+                                <option value="">Select Vendor...</option>
+                                {vendors.map((v: Vendor) => <option key={v.id} value={v.id}>{v.name}</option>)}
+                            </select>
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>Select Product</Label>
+                            <select
+                                className="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                                value={data.product_id}
+                                onChange={(e) => setData({ ...data, product_id: e.target.value })}
+                                required
+                            >
+                                <option value="">Select Product...</option>
+                                {products.map((p: Product) => <option key={p.id} value={p.id}>{p.name}</option>)}
+                            </select>
+                        </div>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div className="grid gap-2">
+                                <Label>Quantity</Label>
+                                <Input
+                                    type="number"
+                                    step="0.01"
+                                    value={data.quantity}
+                                    onChange={(e) => setData({ ...data, quantity: e.target.value })}
+                                    required
+                                />
+                            </div>
+                            <div className="grid gap-2">
+                                <Label>Unit Cost (RM)</Label>
+                                <Input
+                                    type="number"
+                                    step="0.01"
+                                    value={data.unit_cost}
+                                    onChange={(e) => setData({ ...data, unit_cost: e.target.value })}
+                                    required
+                                />
+                            </div>
+                        </div>
+                        <div className="flex justify-end gap-2 pt-4">
+                            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+                            <Button type="submit">Confirm Stock In</Button>
+                        </div>
+                    </form>
+                </CardContent>
+            </Card>
         </div>
     );
 }

@@ -27,7 +27,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
 
                 {/* Center - Title/Nav (Hidden on print usually, but let's keep title) */}
                 <div className="flex-1 text-center px-4">
-                    <h1 className="text-2xl font-bold uppercase tracking-wider">SP Fresh Chicken</h1>
+                    <h1 className="text-2xl font-bold uppercase tracking-wider">SP FAMILY VENTURES EST ENTERPRISE</h1>
                     <p className="text-muted-foreground text-xs mt-1">Inventory & Sales Management System</p>
                 </div>
 
@@ -52,7 +52,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                         <NavItem href="/shop" icon={<ShoppingBasket className="w-4 h-4" />} label="Shop / Order" />
                         <NavItem href="/dashboard/products" icon={<Package className="w-4 h-4" />} label="Products" />
                         <NavItem href="/dashboard/orders" icon={<Receipt className="w-4 h-4" />} label="Orders" />
-                        <NavItem href="/dashboard/customers" icon={<Users className="w-4 h-4" />} label="Customers" />
+
                         <div className="h-px bg-border my-4" />
                         <NavItem href="/dashboard/vendors" icon={<Truck className="w-4 h-4" />} label="Vendors" />
                         <NavItem href="/dashboard/inventory" icon={<Package className="w-4 h-4" />} label="Inventory" />
