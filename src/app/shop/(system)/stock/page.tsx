@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useEffect } from "react";
-import { useParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { supabase } from '@/lib/supabase';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -28,11 +28,14 @@ interface Product {
 }
 
 export default function StockPage() {
-    const params = useParams();
+    const searchParams = useSearchParams();
+    const shopId = searchParams.get('shopId') || 'Unknown';
+
     const [search, setSearch] = useState("");
     const [products, setProducts] = useState<Product[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+    const [lastError, setLastError] = useState<string | null>(null);
 
     // Edit Form State
     const [editData, setEditData] = useState({
@@ -42,6 +45,8 @@ export default function StockPage() {
 
     const fetchProducts = async () => {
         setIsLoading(true);
+        setLastError(null);
+
         let query = supabase.from('products').select('*').order('name');
 
         if (search) {
@@ -52,7 +57,9 @@ export default function StockPage() {
 
         if (error) {
             console.error('Error fetching products:', error);
-            toast.error('Failed to load stock');
+            const msg = `Load Failed: ${error.message} (Shop: ${shopId})`;
+            setLastError(msg);
+            toast.error(msg);
         } else {
             setProducts(data || []);
         }
@@ -93,14 +100,25 @@ export default function StockPage() {
             fetchProducts();
         } catch (error: any) {
             console.error(error);
-            toast.error(error.message || 'Failed to update stock');
+            const msg = `Update Failed: ${error.message || JSON.stringify(error)}`;
+            setLastError(msg);
+            toast.error(msg);
         }
     };
 
     return (
         <div className="p-8 space-y-8">
+            {lastError && (
+                <div className="bg-destructive/15 text-destructive p-4 rounded-md border border-destructive/20 font-bold whitespace-pre-wrap">
+                    CRITICAL ERROR: {lastError}
+                </div>
+            )}
+
             <div className="flex items-center justify-between">
-                <h1 className="text-3xl font-bold tracking-tight">Stock Management (Shop)</h1>
+                <div>
+                    <h1 className="text-3xl font-bold tracking-tight">Stock Management (Shop)</h1>
+                    <p className="text-muted-foreground font-mono text-sm mt-1">Shop ID: {shopId}</p>
+                </div>
             </div>
 
             <div className="flex items-center space-x-4">
