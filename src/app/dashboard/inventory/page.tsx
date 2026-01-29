@@ -55,6 +55,7 @@ export default function InventoryPage() {
         reason: 'Damaged',
         remarks: ''
     });
+    const [lastError, setLastError] = useState<string | null>(null);
 
     const fetchData = async () => {
         setIsLoading(true);
@@ -62,8 +63,13 @@ export default function InventoryPage() {
         const { data: prodData } = await supabase.from('products').select('*').order('name');
         if (prodData) setProducts(prodData);
 
-        // Fetch Vendors for dropdown
-        const { data: vendData } = await supabase.from('vendors').select('id, name').eq('status', 'Active').order('name');
+        // Fetch Vendors
+        const { data: vendData, error: vErr } = await supabase.from('vendors').select('id, name').eq('status', 'Active').order('name');
+        if (vErr) {
+            const msg = `Vendor Fetch Error: ${vErr.message}`;
+            setLastError(msg);
+            toast.error(msg);
+        }
         if (vendData) setVendors(vendData);
 
         setIsLoading(false);
@@ -132,7 +138,9 @@ export default function InventoryPage() {
 
         } catch (error: any) {
             console.error(error);
-            toast.error(error.message || 'Failed to record purchase');
+            const msg = `Purchase Failed: ${error.message || JSON.stringify(error)}`;
+            setLastError(msg);
+            toast.error(msg);
         }
     };
 
@@ -183,6 +191,11 @@ export default function InventoryPage() {
 
     return (
         <div className="space-y-4">
+            {lastError && (
+                <div className="bg-destructive/15 text-destructive p-4 rounded-md border border-destructive/20 font-bold whitespace-pre-wrap">
+                    CRITICAL ERROR: {lastError}
+                </div>
+            )}
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold tracking-tight">Inventory Level</h1>
                 <div className="space-x-2">

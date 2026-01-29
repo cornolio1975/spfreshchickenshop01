@@ -42,12 +42,16 @@ export default function ProductsPage() {
         stock_status: 'In Stock',
         unit_type: 'Qty'
     });
+    const [lastError, setLastError] = useState<string | null>(null);
 
     const fetchProducts = async () => {
         setIsLoading(true);
+        setLastError(null);
         const { data, error } = await supabase.from('products').select('*').order('name');
         if (error) {
-            toast.error('Failed to load products');
+            const msg = `Fetch Failed: ${error.message} (Code: ${error.code})`;
+            toast.error(msg);
+            setLastError(msg);
             console.error(error);
         } else {
             setProducts(data || []);
@@ -122,7 +126,9 @@ export default function ProductsPage() {
             fetchProducts();
         } catch (error: any) {
             console.error('Detailed Error:', error);
-            toast.error(`Failed: ${error.message || JSON.stringify(error)}`);
+            const msg = `Save Failed: ${error.message || JSON.stringify(error)}`;
+            toast.error(msg);
+            setLastError(msg);
         }
     };
 
@@ -141,6 +147,11 @@ export default function ProductsPage() {
 
     return (
         <div className="space-y-4">
+            {lastError && (
+                <div className="bg-destructive/15 text-destructive p-4 rounded-md border border-destructive/20 font-bold whitespace-pre-wrap">
+                    CRITICAL ERROR: {lastError}
+                </div>
+            )}
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold tracking-tight">Products</h1>
                 <Button onClick={() => handleOpenModal()}>
