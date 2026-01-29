@@ -1,9 +1,7 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Truck } from 'lucide-react';
-
-
+import { Truck, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
@@ -38,6 +36,16 @@ export default function InventoryPage() {
     const [isLoading, setIsLoading] = useState(true);
     const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
     const [isAdjustmentModalOpen, setIsAdjustmentModalOpen] = useState(false);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+
+    // Error Logging
+    const [lastError, setLastError] = useState<string | null>(null);
+
+    // Edit Form State
+    const [editData, setEditData] = useState({
+        product_id: '',
+        new_stock: ''
+    });
 
     // Purchase Form State
     const [purchaseData, setPurchaseData] = useState({
@@ -55,13 +63,20 @@ export default function InventoryPage() {
         reason: 'Damaged',
         remarks: ''
     });
-    const [lastError, setLastError] = useState<string | null>(null);
 
     const fetchData = async () => {
         setIsLoading(true);
-        // Fetch Products with Stock
-        const { data: prodData } = await supabase.from('products').select('*').order('name');
-        if (prodData) setProducts(prodData);
+        setLastError(null);
+
+        // Fetch Products
+        const { data: prodData, error: pErr } = await supabase.from('products').select('*').order('name');
+        if (pErr) {
+            const msg = `Product Fetch Error: ${pErr.message}`;
+            setLastError(msg);
+            toast.error(msg);
+        } else {
+            setProducts(prodData || []);
+        }
 
         // Fetch Vendors
         const { data: vendData, error: vErr } = await supabase.from('vendors').select('id, name').eq('status', 'Active').order('name');
@@ -69,8 +84,9 @@ export default function InventoryPage() {
             const msg = `Vendor Fetch Error: ${vErr.message}`;
             setLastError(msg);
             toast.error(msg);
+        } else {
+            setVendors(vendData || []);
         }
-        if (vendData) setVendors(vendData);
 
         setIsLoading(false);
     };
@@ -118,8 +134,6 @@ export default function InventoryPage() {
             if (iError) throw iError;
 
             // 3. Update Product Stock (Increment)
-            // Using RPC for atomic increment would be better, but for now fetch-update is acceptable for single user
-            // We'll update passing the new value.
             const product = products.find(p => p.id === purchaseData.product_id);
             const currentStock = Number(product?.stock) || 0;
             const newStock = currentStock + qty;
@@ -134,7 +148,7 @@ export default function InventoryPage() {
             toast.success('Purchase recorded & Stock updated');
             setIsPurchaseModalOpen(false);
             setPurchaseData({ vendor_id: '', product_id: '', quantity: '', unit_cost: '', remarks: '' });
-            fetchData(); // Refresh list
+            fetchData();
 
         } catch (error: any) {
             console.error(error);
@@ -185,7 +199,45 @@ export default function InventoryPage() {
 
         } catch (error: any) {
             console.error(error);
-            toast.error(error.message || 'Failed to report loss');
+            const msg = `Adjustment Failed: ${error.message || JSON.stringify(error)}`;
+            setLastError(msg);
+            toast.error(msg);
+        }
+    };
+
+    const openEditModal = (product: Product) => {
+        setEditData({
+            product_id: product.id,
+            new_stock: product.stock ? product.stock.toString() : '0'
+        });
+        setIsEditModalOpen(true);
+    };
+
+    const handleQuickEdit = async (e: React.FormEvent) => {
+        e.preventDefault();
+        const stockVal = parseFloat(editData.new_stock);
+
+        if (isNaN(stockVal)) {
+            toast.error('Invalid stock value');
+            return;
+        }
+
+        try {
+            const { error: stockError } = await supabase
+                .from('products')
+                .update({ stock: stockVal })
+                .eq('id', editData.product_id);
+
+            if (stockError) throw stockError;
+
+            toast.success('Stock updated directly');
+            setIsEditModalOpen(false);
+            fetchData();
+        } catch (error: any) {
+            console.error(error);
+            const msg = `Update Failed: ${error.message || JSON.stringify(error)}`;
+            setLastError(msg);
+            toast.error(msg);
         }
     };
 
@@ -196,6 +248,7 @@ export default function InventoryPage() {
                     CRITICAL ERROR: {lastError}
                 </div>
             )}
+
             <div className="flex items-center justify-between">
                 <h1 className="text-2xl font-bold tracking-tight">Inventory Level</h1>
                 <div className="space-x-2">
@@ -221,9 +274,17 @@ export default function InventoryPage() {
                                 <TableHead>Unit</TableHead>
                                 <TableHead>Current Stock</TableHead>
                                 <TableHead>Status</TableHead>
+                                <TableHead className="text-right">Action</TableHead>
                             </TableRow>
                         </TableHeader>
                         <TableBody>
+                            {products.length === 0 && !isLoading && (
+                                <TableRow>
+                                    <TableCell colSpan={5} className="text-center py-4 text-muted-foreground">
+                                        No inventory found.
+                                    </TableCell>
+                                </TableRow>
+                            )}
                             {products.map((item) => (
                                 <TableRow key={item.id}>
                                     <TableCell className="font-medium">{item.name}</TableCell>
@@ -234,6 +295,11 @@ export default function InventoryPage() {
                                             }`}>
                                             {(item.stock || 0) > 10 ? 'Good' : 'Low Stock'}
                                         </span>
+                                    </TableCell>
+                                    <TableCell className="text-right">
+                                        <Button variant="ghost" size="icon" onClick={() => openEditModal(item)}>
+                                            <Pencil className="h-4 w-4" />
+                                        </Button>
                                     </TableCell>
                                 </TableRow>
                             ))}
@@ -333,7 +399,7 @@ export default function InventoryPage() {
                                         required
                                     >
                                         <option value="">Select Product...</option>
-                                        {products.map(p => <option key={p.id} value={p.id}>{p.name} (Current: {p.stock})</option>)}
+                                        {products.map(p => <option key={p.id} value={p.id}>{p.name} (Current: {Number(p.stock || 0).toFixed(2)})</option>)}
                                     </select>
                                 </div>
                                 <div className="grid gap-2">
@@ -372,6 +438,35 @@ export default function InventoryPage() {
                                 <div className="flex justify-end gap-2 pt-4">
                                     <Button type="button" variant="outline" onClick={() => setIsAdjustmentModalOpen(false)}>Cancel</Button>
                                     <Button type="submit" variant="destructive">Confirm Loss</Button>
+                                </div>
+                            </form>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
+            {/* Quick Edit Modal */}
+            {isEditModalOpen && (
+                <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+                    <Card className="w-full max-w-sm bg-background shadow-lg">
+                        <CardHeader>
+                            <CardTitle>Edit Stock Level</CardTitle>
+                        </CardHeader>
+                        <CardContent>
+                            <form onSubmit={handleQuickEdit} className="space-y-4">
+                                <div className="grid gap-2">
+                                    <Label>New Stock Quantity</Label>
+                                    <Input
+                                        type="number"
+                                        step="0.01"
+                                        value={editData.new_stock}
+                                        onChange={(e) => setEditData({ ...editData, new_stock: e.target.value })}
+                                        required
+                                    />
+                                </div>
+                                <div className="flex justify-end gap-2 pt-4">
+                                    <Button type="button" variant="outline" onClick={() => setIsEditModalOpen(false)}>Cancel</Button>
+                                    <Button type="submit">Update Stock</Button>
                                 </div>
                             </form>
                         </CardContent>
