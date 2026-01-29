@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Plus, Search, Pencil } from "lucide-react";
 import { toast } from 'sonner';
+import { Label } from "@/components/ui/label";
 import {
     Table,
     TableBody,
