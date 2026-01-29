@@ -1,5 +1,7 @@
 'use client';
 
+import { useSearchParams } from 'next/navigation';
+
 import { useState } from 'react';
 import { Search, ShoppingCart, Trash2, Plus, Minus, Printer, Home, Calendar, Truck } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -10,8 +12,6 @@ import {
     TableBody,
     TableCell,
     TableHead,
-    TableHeader,
-    TableRow,
     TableHeader,
     TableRow,
 } from "@/components/ui/table";
@@ -30,6 +30,7 @@ interface Product {
     base_price: number;
     category: string;
     unit_type?: 'Kg' | 'Qty';
+    stock?: number;
 }
 
 
@@ -40,6 +41,10 @@ interface Vendor {
 }
 
 export default function POSPage() {
+    const searchParams = useSearchParams();
+    const shopId = searchParams.get('shopId');
+    const [shopName, setShopName] = useState<string>('');
+
     // Allow quantity to be string for input handling (e.g. "1.")
     const [cart, setCart] = useState<{ product: Product, quantity: number | string }[]>([]);
     const [search, setSearch] = useState('');
@@ -83,9 +88,15 @@ export default function POSPage() {
             // Fetch Vendors
             const { data: vendData } = await supabase.from('vendors').select('id, name').eq('status', 'Active').order('name');
             if (vendData) setVendors(vendData);
+
+            // Fetch Shop Name if shopId exists
+            if (shopId) {
+                const { data: shopData } = await supabase.from('shops').select('name').eq('id', shopId).single();
+                if (shopData) setShopName(shopData.name);
+            }
         };
         fetchProducts();
-    }, [search]);
+    }, [search, shopId]);
 
     const addToCart = (product: Product) => {
         setCart(prev => {
@@ -234,8 +245,7 @@ export default function POSPage() {
             if (iError) throw iError;
 
             // 3. Update Product Stock (Increment)
-            const product = products.find(p => p.id === purchaseData.product_id);
-            const currentStock = Number(product?.base_price * 0 === 0 ? (product as any).stock : 0) || 0; // Type safety hack or need update interface
+            // const product = products.find(p => p.id === purchaseData.product_id);
             // Actually let's just fetch fresh to be safe or assuming local update
             const { data: currentProd } = await supabase.from('products').select('stock').eq('id', purchaseData.product_id).single();
             const freshStock = Number(currentProd?.stock) || 0;
@@ -269,12 +279,21 @@ export default function POSPage() {
             {/* Left: Product Table */}
             <div className="flex-1 flex flex-col border border-border bg-card rounded-sm overflow-hidden print:hidden">
                 <div className="p-4 border-b border-border flex gap-2 items-center">
-                    <Button variant="outline" size="icon" onClick={() => window.location.href = '/'} title="Go Home">
-                        <Home className="h-4 w-4" />
-                    </Button>
-                    <Button variant="outline" size="icon" onClick={() => setIsPurchaseModalOpen(true)} title="Stock In (Purchase)">
-                        <Truck className="h-4 w-4" />
-                    </Button>
+                    <div className="flex items-center gap-2 mr-2">
+                        <Button variant="outline" size="icon" onClick={() => window.location.href = '/'} title="Go Home">
+                            <Home className="h-4 w-4" />
+                        </Button>
+                        <Button variant="outline" size="icon" onClick={() => setIsPurchaseModalOpen(true)} title="Stock In (Purchase)">
+                            <Truck className="h-4 w-4" />
+                        </Button>
+                    </div>
+
+                    {/* Shop Label */}
+                    {shopName && (
+                        <div className="hidden md:block px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap">
+                            {shopName}
+                        </div>
+                    )}
 
                     {/* Date Picker */}
                     <div className="relative">

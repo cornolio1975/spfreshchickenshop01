@@ -104,7 +104,7 @@ export default function ProductsPage() {
         };
 
         try {
-            if (editingProduct) {
+            if (editingProduct && editingProduct.id) {
                 const { error } = await supabase
                     .from('products')
                     .update(payload)
@@ -121,7 +121,8 @@ export default function ProductsPage() {
             setIsModalOpen(false);
             fetchProducts();
         } catch (error: any) {
-            toast.error(error.message);
+            console.error('Detailed Error:', error);
+            toast.error(`Failed: ${error.message || JSON.stringify(error)}`);
         }
     };
 
