@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { Receipt, ShoppingBasket, Home, Settings, Users, Package } from "lucide-react";
+import { Receipt, ShoppingBasket, Home, Settings, Users, Package, Truck } from "lucide-react";
 import Image from "next/image";
 
 interface DashboardLayoutProps {
@@ -9,9 +9,9 @@ interface DashboardLayoutProps {
 
 export default function DashboardLayout({ children }: DashboardLayoutProps) {
     return (
-        <div className="min-h-screen bg-background font-mono text-sm">
+        <div className="flex flex-col h-screen bg-background font-mono text-sm">
             {/* Top Header - Printed on Invoices */}
-            <header className="border-b border-border bg-card px-6 py-4 flex items-center justify-between print:flex print:border-none">
+            <header className="flex-none border-b border-border bg-card px-6 py-4 flex items-center justify-between print:flex print:border-none">
 
                 {/* Left Logo - SP */}
                 <div className="flex-shrink-0">
@@ -44,9 +44,9 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 </div>
             </header>
 
-            <div className="flex h-[calc(100vh-113px)]">
+            <div className="flex flex-1 overflow-hidden">
                 {/* Sidebar Navigation - Hidden on Print */}
-                <aside className="w-64 border-r border-border bg-muted/30 p-4 hidden md:block print:hidden">
+                <aside className="w-64 border-r border-border bg-muted/30 p-4 hidden md:block overflow-y-auto print:hidden">
                     <nav className="space-y-2">
                         <NavItem href="/" icon={<Home className="w-4 h-4" />} label="Dashboard" />
                         <NavItem href="/shop" icon={<ShoppingBasket className="w-4 h-4" />} label="Shop / Order" />
@@ -54,12 +54,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                         <NavItem href="/dashboard/orders" icon={<Receipt className="w-4 h-4" />} label="Orders" />
                         <NavItem href="/dashboard/customers" icon={<Users className="w-4 h-4" />} label="Customers" />
                         <div className="h-px bg-border my-4" />
+                        <NavItem href="/dashboard/vendors" icon={<Truck className="w-4 h-4" />} label="Vendors" />
+                        <NavItem href="/dashboard/inventory" icon={<Package className="w-4 h-4" />} label="Inventory" />
+                        <div className="h-px bg-border my-4" />
+                        <NavItem href="/shop/reports" icon={<Receipt className="w-4 h-4" />} label="Reports" />
                         <NavItem href="/dashboard/settings" icon={<Settings className="w-4 h-4" />} label="Settings" />
                     </nav>
                 </aside>
 
                 {/* Main Content Area */}
-                <main className="flex-1 overflow-auto p-6 print:p-0 print:overflow-visible">
+                <main className="flex-1 overflow-y-auto p-6 print:p-0 print:overflow-visible">
                     {children}
                 </main>
             </div>
