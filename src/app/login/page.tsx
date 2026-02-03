@@ -1,7 +1,6 @@
 'use client';
 
-export const dynamic = "force-static";
-export const revalidate = false;
+
 
 // @ts-ignore
 // import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';

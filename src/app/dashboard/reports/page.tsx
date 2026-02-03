@@ -1,6 +1,7 @@
 'use client';
 
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { formatCurrency } from '@/lib/utils';
 import {
     Table,
     TableBody,
@@ -91,13 +92,13 @@ export default function ReportsPage() {
                                     <TableCell>{tx.time}</TableCell>
                                     <TableCell>
                                         <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${tx.status === 'Completed'
-                                                ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
-                                                : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
+                                            ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'
+                                            : 'bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-300'
                                             }`}>
                                             {tx.status}
                                         </span>
                                     </TableCell>
-                                    <TableCell className="text-right">${tx.amount.toFixed(2)}</TableCell>
+                                    <TableCell className="text-right">{formatCurrency(tx.amount)}</TableCell>
                                 </TableRow>
                             ))}
                         </TableBody>

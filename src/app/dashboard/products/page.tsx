@@ -15,6 +15,7 @@ import {
     TableRow,
 } from '@/components/ui/table';
 import { supabase } from '@/lib/supabase';
+import { formatCurrency } from '@/lib/utils';
 import { toast } from 'sonner';
 
 interface Product {
@@ -173,7 +174,7 @@ export default function ProductsPage() {
                                     <TableHead>Category</TableHead>
                                     <TableHead>Unit</TableHead>
                                     <TableHead>Base Price (RM)</TableHead>
-                                    <TableHead>Stock</TableHead> {/* New Column */}
+                                    <TableHead>Stock</TableHead>
                                     <TableHead>Global Status</TableHead>
                                     <TableHead className="text-right">Actions</TableHead>
                                 </TableRow>
@@ -196,8 +197,8 @@ export default function ProductsPage() {
                                         </TableCell>
                                         <TableCell>{product.category}</TableCell>
                                         <TableCell>{product.unit_type || 'Qty'}</TableCell>
-                                        <TableCell>{product.base_price?.toFixed(2)}</TableCell>
-                                        <TableCell>{Number(product.stock || 0).toFixed(2)}</TableCell> {/* Display Stock */}
+                                        <TableCell>{formatCurrency(product.base_price || 0)}</TableCell>
+                                        <TableCell>{Number(product.stock || 0).toFixed(2)}</TableCell>
                                         <TableCell>
                                             <span className={`inline-flex items-center rounded-full px-2.5 py-0.5 text-xs font-medium ${product.stock_status === 'In Stock'
                                                 ? 'bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-300'

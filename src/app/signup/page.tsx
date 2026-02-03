@@ -1,7 +1,6 @@
 'use client';
 
-export const dynamic = "force-static";
-export const revalidate = false;
+
 
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';

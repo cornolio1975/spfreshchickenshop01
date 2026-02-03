@@ -1,7 +1,6 @@
 "use client";
 
-export const dynamic = "force-static";
-export const revalidate = false;
+
 
 import Link from "next/link";
 import DashboardLayout from "@/components/layout/DashboardLayout";
@@ -61,8 +60,8 @@ export default function Home() {
 
 function DashboardCard({ title, description, href, icon }: { title: string, description: string, href: string, icon: React.ReactNode }) {
     return (
-        <Link href={href} className="group block">
-            <div className="bg-card border border-border p-6 rounded-sm hover:border-primary/50 transition-colors h-full flex flex-col items-start">
+        <Link href={href} className="group block cursor-pointer">
+            <div className="bg-card border border-border p-6 rounded-sm hover:border-primary/50 transition-colors h-full flex flex-col items-start relative">
                 <div className="mb-4 bg-primary/10 p-3 rounded-sm">
                     {icon}
                 </div>

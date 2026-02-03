@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { cn } from "@/lib/utils";
-import { Receipt, ShoppingBasket, Home, Settings, Users, Package, Truck } from "lucide-react";
+import { Receipt, ShoppingBasket, Home, Settings, Users, Package, Truck, LayoutDashboard } from "lucide-react";
 import Image from "next/image";
 
 interface DashboardLayoutProps {
@@ -48,7 +48,8 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                 {/* Sidebar Navigation - Hidden on Print */}
                 <aside className="w-64 border-r border-border bg-muted/30 p-4 hidden md:block overflow-y-auto print:hidden">
                     <nav className="space-y-2">
-                        <NavItem href="/" icon={<Home className="w-4 h-4" />} label="Dashboard" />
+                        <NavItem href="/" icon={<Home className="w-4 h-4" />} label="Home" />
+                        <NavItem href="/dashboard" icon={<LayoutDashboard className="w-4 h-4" />} label="Overview" />
                         <NavItem href="/shop" icon={<ShoppingBasket className="w-4 h-4" />} label="Shop / Order" />
                         <NavItem href="/dashboard/products" icon={<Package className="w-4 h-4" />} label="Products" />
                         <NavItem href="/dashboard/orders" icon={<Receipt className="w-4 h-4" />} label="Orders" />

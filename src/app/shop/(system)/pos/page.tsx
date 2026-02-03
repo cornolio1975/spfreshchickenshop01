@@ -17,6 +17,7 @@ import {
 } from "@/components/ui/table";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
+import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 
 // @ts-ignore
 // import { createClientComponentClient } from '@supabase/auth-helpers-nextjs';
@@ -154,6 +155,7 @@ export default function POSPage() {
                 .from('sales')
                 .insert([
                     {
+                        shop_id: shopId, // Added shop_id
                         total_amount: total,
                         payment_method: 'cash', // Default to cash for now
                         status: 'completed',
@@ -222,6 +224,7 @@ export default function POSPage() {
             const { data: purchase, error: pError } = await supabase
                 .from('purchases')
                 .insert([{
+                    shop_id: shopId, // Added shop_id
                     vendor_id: purchaseData.vendor_id,
                     total_cost: total,
                     remarks: `${purchaseData.remarks} (via POS)`
@@ -274,185 +277,209 @@ export default function POSPage() {
 
     const filteredProducts = products.filter(p => p.name.toLowerCase().includes(search.toLowerCase()));
 
-    return (
-        <div className="flex h-[calc(100vh-120px)] gap-4 flex-col md:flex-row">
-            {/* Left: Product Table */}
-            <div className="flex-1 flex flex-col border border-border bg-card rounded-sm overflow-hidden print:hidden">
-                <div className="p-4 border-b border-border flex gap-2 items-center">
-                    <div className="flex items-center gap-2 mr-2">
-                        <Button variant="outline" size="icon" onClick={() => window.location.href = '/'} title="Go Home">
-                            <Home className="h-4 w-4" />
-                        </Button>
-                        <Button variant="outline" size="icon" onClick={() => setIsPurchaseModalOpen(true)} title="Stock In (Purchase)">
-                            <Truck className="h-4 w-4" />
-                        </Button>
-                    </div>
-
-                    {/* Shop Label */}
-                    {shopName && (
-                        <div className="hidden md:block px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap">
-                            {shopName}
-                        </div>
-                    )}
-
-                    {/* Date Picker */}
-                    <div className="relative">
-                        <Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            type="date"
-                            className="pl-9 h-9 w-[160px]"
-                            value={saleDate}
-                            onChange={(e) => setSaleDate(e.target.value)}
-                        />
-                    </div>
-
-                    <div className="relative flex-1 max-w-sm">
-                        <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                        <Input
-                            placeholder="Search by product name..."
-                            className="pl-8 h-9"
-                            value={search}
-                            onChange={(e) => setSearch(e.target.value)}
-                        />
-                    </div>
+    const renderProductSection = () => (
+        <div className="flex-1 flex flex-col border border-border bg-card rounded-sm overflow-hidden min-h-0 print:hidden">
+            <div className="p-4 border-b border-border flex gap-2 items-center">
+                <div className="flex items-center gap-2 mr-2">
+                    <Button variant="outline" size="icon" onClick={() => window.location.href = '/'} title="Go Home">
+                        <Home className="h-4 w-4" />
+                    </Button>
+                    <Button variant="outline" size="icon" onClick={() => setIsPurchaseModalOpen(true)} title="Stock In (Purchase)">
+                        <Truck className="h-4 w-4" />
+                    </Button>
                 </div>
 
-                <div className="flex-1 overflow-auto">
-                    <Table>
-                        <TableHeader>
-                            <TableRow>
-                                <TableHead>Product Name</TableHead>
-                                <TableHead>Category</TableHead>
-                                <TableHead className="text-right">Unit Price (RM)</TableHead>
-                                <TableHead className="w-[100px]">Action</TableHead>
+                {/* Shop Label */}
+                {shopName && (
+                    <div className="hidden md:block px-3 py-1 bg-primary/10 text-primary rounded-full text-xs font-bold uppercase tracking-wider whitespace-nowrap">
+                        {shopName}
+                    </div>
+                )}
+
+                {/* Date Picker */}
+                <div className="relative">
+                    <Calendar className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        type="date"
+                        className="pl-9 h-9 w-[160px]"
+                        value={saleDate}
+                        onChange={(e) => setSaleDate(e.target.value)}
+                    />
+                </div>
+
+                <div className="relative flex-1 max-w-sm">
+                    <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                        placeholder="Search by product name..."
+                        className="pl-8 h-9"
+                        value={search}
+                        onChange={(e) => setSearch(e.target.value)}
+                    />
+                </div>
+            </div>
+
+            <div className="flex-1 overflow-auto">
+                <Table>
+                    <TableHeader>
+                        <TableRow>
+                            <TableHead>Product Name</TableHead>
+                            <TableHead>Category</TableHead>
+                            <TableHead className="text-right">Unit Price (RM)</TableHead>
+                            <TableHead className="w-[100px]">Action</TableHead>
+                        </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                        {products.map((product) => (
+                            <TableRow key={product.id} className="hover:bg-muted/50">
+                                <TableCell className="font-medium">
+                                    {product.name}
+                                    {product.unit_type === 'Kg' && <span className="ml-2 text-xs text-muted-foreground border px-1 rounded">Kg</span>}
+                                </TableCell>
+                                <TableCell>{product.category}</TableCell>
+                                <TableCell className="text-right">
+                                    RM {product.base_price.toFixed(2)}
+                                    <span className="text-xs text-muted-foreground ml-1">/{product.unit_type || 'Qty'}</span>
+                                </TableCell>
+                                <TableCell>
+                                    <Button
+                                        size="sm"
+                                        variant="outline"
+                                        className="h-7 text-xs"
+                                        onClick={() => addToCart(product)}
+                                    >
+                                        Add
+                                    </Button>
+                                </TableCell>
                             </TableRow>
-                        </TableHeader>
-                        <TableBody>
-                            {products.map((product) => (
-                                <TableRow key={product.id} className="hover:bg-muted/50">
-                                    <TableCell className="font-medium">
-                                        {product.name}
-                                        {product.unit_type === 'Kg' && <span className="ml-2 text-xs text-muted-foreground border px-1 rounded">Kg</span>}
-                                    </TableCell>
-                                    <TableCell>{product.category}</TableCell>
-                                    <TableCell className="text-right">
-                                        RM {product.base_price.toFixed(2)}
-                                        <span className="text-xs text-muted-foreground ml-1">/{product.unit_type || 'Qty'}</span>
-                                    </TableCell>
-                                    <TableCell>
-                                        <Button
-                                            size="sm"
-                                            variant="outline"
-                                            className="h-7 text-xs"
-                                            onClick={() => addToCart(product)}
-                                        >
-                                            Add
-                                        </Button>
-                                    </TableCell>
-                                </TableRow>
-                            ))}
-                        </TableBody>
-                    </Table>
-                </div>
+                        ))}
+                    </TableBody>
+                </Table>
+            </div>
+        </div>
+    );
+
+    const renderCartSection = () => (
+        <div className="w-full flex flex-col border border-border bg-card rounded-sm min-h-0 print:w-full print:border-none">
+            <div className="p-4 border-b border-border bg-muted/20">
+                <h2 className="font-bold flex items-center gap-2 uppercase tracking-wide text-sm">
+                    <ShoppingCart className="h-4 w-4" />
+                    Invoice / Order Summary
+                </h2>
             </div>
 
-            {/* Right: Invoice / Cart */}
-            <div className="w-full md:w-[400px] flex flex-col border border-border bg-card rounded-sm print:w-full print:border-none">
-                <div className="p-4 border-b border-border bg-muted/20">
-                    <h2 className="font-bold flex items-center gap-2 uppercase tracking-wide text-sm">
-                        <ShoppingCart className="h-4 w-4" />
-                        Invoice / Order Summary
-                    </h2>
-                </div>
-
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 print:overflow-visible">
-                    {cart.length === 0 ? (
-                        <div className="text-center text-muted-foreground py-10 font-mono text-xs">
-                            [ NO ITEMS IN CART ]
-                        </div>
-                    ) : (
-                        <table className="w-full text-sm font-mono">
-                            <thead>
-                                <tr className="border-b border-border text-left">
-                                    <th className="py-2">Item</th>
-                                    <th className="py-2 text-right">Qty/Wt</th>
-                                    <th className="py-2 text-right">Total</th>
-                                    <th className="py-2 w-8 print:hidden"></th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {cart.map(item => {
-                                    const isKg = item.product.unit_type === 'Kg';
-                                    const step = isKg ? 0.1 : 1;
-                                    return (
-                                        <tr key={item.product.id} className="border-b border-border/50">
-                                            <td className="py-2">
-                                                <div className="font-medium">{item.product.name}</div>
-                                                <div className="text-xs text-muted-foreground">
-                                                    @ RM {item.product.base_price.toFixed(2)} / {item.product.unit_type || 'Qty'}
-                                                </div>
-                                            </td>
-                                            <td className="py-2 text-right">
-                                                <div className="flex items-center justify-end gap-1 print:hidden">
-                                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => adjustQuantity(item.product, -step)}>
-                                                        <Minus className="h-3 w-3" />
-                                                    </Button>
-                                                    <Input
-                                                        type="text"
-                                                        className="w-16 h-7 text-center p-1 text-xs"
-                                                        value={item.quantity}
-                                                        onChange={(e) => setItemQuantity(item.product.id, e.target.value)}
-                                                    />
-                                                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => adjustQuantity(item.product, step)}>
-                                                        <Plus className="h-3 w-3" />
-                                                    </Button>
-                                                </div>
-                                                <span className="hidden print:block">{item.quantity} {item.product.unit_type}</span>
-                                            </td>
-                                            <td className="py-2 text-right font-medium">
-                                                RM {(item.product.base_price * (Number(item.quantity) || 0)).toFixed(2)}
-                                            </td>
-                                            <td className="py-2 text-right print:hidden">
-                                                <Button variant="ghost" size="icon" className="h-6 w-6 text-destruct hover:text-destruct" onClick={() => removeFromCart(item.product.id)}>
-                                                    <Trash2 className="h-3 w-3" />
+            <div className="flex-1 overflow-y-auto p-4 space-y-4 print:overflow-visible">
+                {cart.length === 0 ? (
+                    <div className="text-center text-muted-foreground py-10 font-mono text-xs">
+                        [ NO ITEMS IN CART ]
+                    </div>
+                ) : (
+                    <table className="w-full text-sm font-mono">
+                        <thead>
+                            <tr className="border-b border-border text-left">
+                                <th className="py-2">Item</th>
+                                <th className="py-2 text-right">Qty/Wt</th>
+                                <th className="py-2 text-right">Total</th>
+                                <th className="py-2 w-8 print:hidden"></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {cart.map(item => {
+                                const isKg = item.product.unit_type === 'Kg';
+                                const step = isKg ? 0.1 : 1;
+                                return (
+                                    <tr key={item.product.id} className="border-b border-border/50">
+                                        <td className="py-2">
+                                            <div className="font-medium">{item.product.name}</div>
+                                            <div className="text-xs text-muted-foreground">
+                                                @ RM {item.product.base_price.toFixed(2)} / {item.product.unit_type || 'Qty'}
+                                            </div>
+                                        </td>
+                                        <td className="py-2 text-right">
+                                            <div className="flex items-center justify-end gap-1 print:hidden">
+                                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => adjustQuantity(item.product, -step)}>
+                                                    <Minus className="h-3 w-3" />
                                                 </Button>
-                                            </td>
-                                        </tr>
-                                    );
-                                })}
-                            </tbody>
-                        </table>
-                    )}
+                                                <Input
+                                                    type="text"
+                                                    className="w-16 h-7 text-center p-1 text-xs"
+                                                    value={item.quantity}
+                                                    onChange={(e) => setItemQuantity(item.product.id, e.target.value)}
+                                                />
+                                                <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => adjustQuantity(item.product, step)}>
+                                                    <Plus className="h-3 w-3" />
+                                                </Button>
+                                            </div>
+                                            <span className="hidden print:block">{item.quantity} {item.product.unit_type}</span>
+                                        </td>
+                                        <td className="py-2 text-right font-medium">
+                                            RM {(item.product.base_price * (Number(item.quantity) || 0)).toFixed(2)}
+                                        </td>
+                                        <td className="py-2 text-right print:hidden">
+                                            <Button variant="ghost" size="icon" className="h-6 w-6 text-destruct hover:text-destruct" onClick={() => removeFromCart(item.product.id)}>
+                                                <Trash2 className="h-3 w-3" />
+                                            </Button>
+                                        </td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                )}
+            </div>
+
+            {/* Totals Section */}
+            <div className="p-4 border-t border-border bg-muted/20">
+                <div className="space-y-1 text-sm font-mono border-b border-border pb-4 mb-4">
+                    <div className="flex justify-between">
+                        <span className="text-muted-foreground">Subtotal:</span>
+                        <span>RM {total.toFixed(2)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                        <span className="text-muted-foreground">Tax (0%):</span>
+                        <span>RM 0.00</span>
+                    </div>
+                    <div className="flex justify-between font-bold text-lg pt-2 border-t border-border/50">
+                        <span>TOTAL DUE:</span>
+                        <span>RM {total.toFixed(2)}</span>
+                    </div>
                 </div>
 
-                {/* Totals Section */}
-                <div className="p-4 border-t border-border bg-muted/20">
-                    <div className="space-y-1 text-sm font-mono border-b border-border pb-4 mb-4">
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">Subtotal:</span>
-                            <span>RM {total.toFixed(2)}</span>
-                        </div>
-                        <div className="flex justify-between">
-                            <span className="text-muted-foreground">Tax (0%):</span>
-                            <span>RM 0.00</span>
-                        </div>
-                        <div className="flex justify-between font-bold text-lg pt-2 border-t border-border/50">
-                            <span>TOTAL DUE:</span>
-                            <span>RM {total.toFixed(2)}</span>
-                        </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2 print:hidden">
-                        <Button variant="outline" onClick={handlePrint} disabled={cart.length === 0}>
-                            <Printer className="w-4 h-4 mr-2" />
-                            Print
-                        </Button>
-                        <Button onClick={handleCheckout} disabled={cart.length === 0 || isCheckingOut} className="bg-primary text-primary-foreground hover:bg-primary/90">
-                            {isCheckingOut ? 'Processing...' : 'Checkout'}
-                        </Button>
-                    </div>
+                <div className="grid grid-cols-2 gap-2 print:hidden">
+                    <Button variant="outline" onClick={handlePrint} disabled={cart.length === 0}>
+                        <Printer className="w-4 h-4 mr-2" />
+                        Print
+                    </Button>
+                    <Button onClick={handleCheckout} disabled={cart.length === 0 || isCheckingOut} className="bg-primary text-primary-foreground hover:bg-primary/90">
+                        {isCheckingOut ? 'Processing...' : 'Checkout'}
+                    </Button>
                 </div>
             </div>
+        </div>
+    );
+
+    return (
+        <div className="min-h-screen md:min-h-0 md:h-full">
+            {/* Desktop Layout (Resizable) */}
+            <div className="hidden md:flex h-full gap-4">
+                <ResizablePanelGroup orientation="horizontal">
+                    <ResizablePanel defaultSize={70} className="pr-1">
+                        {renderProductSection()}
+                    </ResizablePanel>
+
+                    <ResizableHandle withHandle />
+
+                    <ResizablePanel defaultSize={30} className="pl-1">
+                        {renderCartSection()}
+                    </ResizablePanel>
+                </ResizablePanelGroup>
+            </div>
+
+            {/* Mobile Layout (Stacked) */}
+            <div className="flex flex-col gap-4 md:hidden p-2">
+                {renderProductSection()}
+                {renderCartSection()}
+            </div>
+
             {/* Purchase Modal */}
             <PurchaseModal
                 isOpen={isPurchaseModalOpen}

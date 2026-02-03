@@ -2,13 +2,19 @@
 
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { usePathname } from 'next/navigation';
 
-export const dynamic = "force-static";
-export const revalidate = false;
 
 
 
 export default function ShopLayout({ children }: { children: React.ReactNode }) {
+    const pathname = usePathname();
+    const isRootShopPage = pathname === '/shop';
+
+    if (!isRootShopPage) {
+        return <>{children}</>;
+    }
+
     return (
         <div className="min-h-screen bg-slate-50 dark:bg-slate-900">
             <header className="flex h-14 items-center border-b bg-white px-4 dark:bg-slate-950">

@@ -2,8 +2,8 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useSearchParams, usePathname } from "next/navigation";
-import { ShoppingBasket, BarChart3, Package, Settings, LogOut, Menu } from "lucide-react";
+import { useSearchParams, usePathname, useRouter } from "next/navigation";
+import { ShoppingBasket, BarChart3, Package, Settings, LogOut, Menu, ArrowLeft, Home } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -16,7 +16,16 @@ export default function ShopLayout({
 }) {
     const searchParams = useSearchParams();
     const pathname = usePathname();
-    const shopId = searchParams.get('shopId') || '';
+    const router = useRouter();
+    const shopId = searchParams.get('shopId');
+
+    React.useEffect(() => {
+        if (!shopId) {
+            router.push('/shop');
+        }
+    }, [shopId, router]);
+
+    if (!shopId) return null;
 
     const navItems = [
         { name: "POS / Sale", href: `/shop/pos`, icon: ShoppingBasket },
@@ -33,6 +42,12 @@ export default function ShopLayout({
                 {/* Shared Header with Logos */}
                 <header className="border-b border-border bg-card px-4 py-4 flex items-center justify-between print:hidden">
                     <div className="flex items-center gap-4">
+                        <Button variant="ghost" size="icon" onClick={() => router.back()} title="Back">
+                            <ArrowLeft className="h-6 w-6" />
+                        </Button>
+                        <Button variant="ghost" size="icon" onClick={() => router.push('/')} title="Exit to Home">
+                            <Home className="h-6 w-6" />
+                        </Button>
                         <Button variant="ghost" size="icon" className="md:hidden" onClick={() => setIsMobileMenuOpen(true)}>
                             <Menu className="h-6 w-6" />
                         </Button>
