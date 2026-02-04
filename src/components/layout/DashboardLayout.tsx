@@ -2,6 +2,7 @@ import Link from "next/link";
 import { cn } from "@/lib/utils";
 import { Receipt, ShoppingBasket, Home, Settings, Users, Package, Truck, LayoutDashboard } from "lucide-react";
 import Image from "next/image";
+import MobileNav from "./MobileNav";
 
 interface DashboardLayoutProps {
     children: React.ReactNode;
@@ -14,15 +15,18 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
             <header className="flex-none border-b border-border bg-card px-6 py-4 flex items-center justify-between print:flex print:border-none">
 
                 {/* Left Logo - SP */}
-                <div className="flex-shrink-0">
-                    <Image
-                        src="/assets/sp-logo.jpg"
-                        alt="SP Fresh Chicken"
-                        width={80}
-                        height={80}
-                        className="block"
-                        priority
-                    />
+                <div className="flex items-center gap-2">
+                    <MobileNav />
+                    <div className="flex-shrink-0">
+                        <Image
+                            src="/assets/sp-logo.jpg"
+                            alt="SP Fresh Chicken"
+                            width={80}
+                            height={80}
+                            className="block"
+                            priority
+                        />
+                    </div>
                 </div>
 
                 {/* Center - Title/Nav (Hidden on print usually, but let's keep title) */}
