@@ -8,6 +8,7 @@ import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import AuthGuard from "@/components/auth/AuthGuard";
+import { supabase } from "@/lib/supabase";
 
 export default function ShopLayout({
     children,
@@ -18,10 +19,26 @@ export default function ShopLayout({
     const pathname = usePathname();
     const router = useRouter();
     const shopId = searchParams.get('shopId');
+    const [displayName, setDisplayName] = React.useState<string>('');
 
     React.useEffect(() => {
         if (!shopId) {
             router.push('/shop');
+        } else {
+            const fetchProfile = async () => {
+                const { data: { user } } = await supabase.auth.getUser();
+                if (user) {
+                    const { data: profile } = await supabase
+                        .from('user_profiles')
+                        .select('full_name')
+                        .eq('id', user.id)
+                        .single();
+                    if (profile?.full_name) {
+                        setDisplayName(profile.full_name);
+                    }
+                }
+            };
+            fetchProfile();
         }
     }, [shopId, router]);
 
@@ -57,7 +74,7 @@ export default function ShopLayout({
                     </div>
 
                     <div className="flex-1 text-center px-2">
-                        <h1 className="text-xl md:text-2xl font-bold uppercase tracking-wider line-clamp-1">shop: {shopId}</h1>
+                        <h1 className="text-xl md:text-2xl font-bold uppercase tracking-wider line-clamp-1">shop: {displayName || shopId}</h1>
                         <p className="text-muted-foreground text-xs mt-1 hidden md:block">Point of Sale System</p>
                     </div>
                     <div className="flex-shrink-0">

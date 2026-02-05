@@ -47,7 +47,7 @@ export default function POSPage() {
     const [shopName, setShopName] = useState<string>('');
 
     // Allow quantity to be string for input handling (e.g. "1.")
-    const [cart, setCart] = useState<{ product: Product, quantity: number | string }[]>([]);
+    const [cart, setCart] = useState<{ product: Product, quantity: number | string, unit_price: number | string }[]>([]);
     const [search, setSearch] = useState('');
     const [products, setProducts] = useState<Product[]>([]);
     const [vendors, setVendors] = useState<Vendor[]>([]); // New Vendor State
@@ -107,7 +107,7 @@ export default function POSPage() {
                     item.product.id === product.id ? { ...item, quantity: Number(item.quantity) + 1 } : item
                 );
             }
-            return [...prev, { product, quantity: 1 }];
+            return [...prev, { product, quantity: 1, unit_price: product.base_price }];
         });
     };
 
@@ -127,6 +127,18 @@ export default function POSPage() {
         }
     };
 
+    const setItemPrice = (productId: string, value: string) => {
+        // Allow empty string or valid number format
+        if (value === '' || /^\d*\.?\d*$/.test(value)) {
+            setCart(prev => prev.map(item => {
+                if (item.product.id === productId) {
+                    return { ...item, unit_price: value };
+                }
+                return item;
+            }));
+        }
+    };
+
     const adjustQuantity = (product: Product, delta: number) => {
         setCart(prev => prev.map(item => {
             if (item.product.id === product.id) {
@@ -138,7 +150,7 @@ export default function POSPage() {
         }));
     };
 
-    const total = cart.reduce((sum, item) => sum + (item.product.base_price * (Number(item.quantity) || 0)), 0);
+    const total = cart.reduce((sum, item) => sum + ((Number(item.unit_price) || 0) * (Number(item.quantity) || 0)), 0);
 
     const handleCheckout = async () => {
         if (cart.length === 0) return;
@@ -179,8 +191,8 @@ export default function POSPage() {
                         product_id: item.product.id,
                         product_name: item.product.name,
                         quantity: qty,
-                        unit_price: item.product.base_price,
-                        total_price: item.product.base_price * qty
+                        unit_price: Number(item.unit_price) || 0,
+                        total_price: (Number(item.unit_price) || 0) * qty
                     }]);
 
                 if (itemError) console.error('Error saving item:', itemError);
@@ -390,8 +402,15 @@ export default function POSPage() {
                                     <tr key={item.product.id} className="border-b border-border/50">
                                         <td className="py-2">
                                             <div className="font-medium">{item.product.name}</div>
-                                            <div className="text-xs text-muted-foreground">
-                                                @ RM {item.product.base_price.toFixed(2)} / {item.product.unit_type || 'Qty'}
+                                            <div className="flex items-center gap-1 text-xs text-muted-foreground mt-1">
+                                                <span>@ RM</span>
+                                                <Input
+                                                    type="text"
+                                                    className="w-16 h-6 text-center p-1 text-xs"
+                                                    value={item.unit_price}
+                                                    onChange={(e) => setItemPrice(item.product.id, e.target.value)}
+                                                />
+                                                <span>/ {item.product.unit_type || 'Qty'}</span>
                                             </div>
                                         </td>
                                         <td className="py-2 text-right">
@@ -412,7 +431,7 @@ export default function POSPage() {
                                             <span className="hidden print:block">{item.quantity} {item.product.unit_type}</span>
                                         </td>
                                         <td className="py-2 text-right font-medium">
-                                            RM {(item.product.base_price * (Number(item.quantity) || 0)).toFixed(2)}
+                                            RM {((Number(item.unit_price) || 0) * (Number(item.quantity) || 0)).toFixed(2)}
                                         </td>
                                         <td className="py-2 text-right print:hidden">
                                             <Button variant="ghost" size="icon" className="h-6 w-6 text-destruct hover:text-destruct" onClick={() => removeFromCart(item.product.id)}>
