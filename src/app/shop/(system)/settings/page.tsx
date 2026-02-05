@@ -169,8 +169,8 @@ export default function SettingsPage() {
         if (user) {
             const { error } = await supabase
                 .from('user_profiles')
-                .update({ full_name: userProfile.fullName })
-                .eq('id', user.id);
+                .upsert({ id: user.id, full_name: userProfile.fullName })
+                .select();
 
             if (error) {
                 toast.error('Failed to update user profile');
