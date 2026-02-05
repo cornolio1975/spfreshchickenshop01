@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { supabase } from '@/lib/supabase';
 import { toast } from 'sonner';
 import { formatCurrency } from '@/lib/utils';
-import { Printer, Save, AlertTriangle } from 'lucide-react';
+import { Printer, Save, AlertTriangle, User } from 'lucide-react';
 
 export default function SettingsPage() {
     const searchParams = useSearchParams();
@@ -23,6 +23,13 @@ export default function SettingsPage() {
         phone: ''
     });
     const [isLoadingProfile, setIsLoadingProfile] = useState(false);
+
+    // User Profile State
+    const [userProfile, setUserProfile] = useState({
+        fullName: '',
+        role: ''
+    });
+    const [isLoadingUser, setIsLoadingUser] = useState(false);
 
     // Report State
     const [report, setReport] = useState({
@@ -47,6 +54,7 @@ export default function SettingsPage() {
         if (shopId) {
             fetchShopDetails();
             fetchReportData();
+            fetchUserProfile();
         }
     }, [shopId, dateRange]);
 
@@ -65,6 +73,25 @@ export default function SettingsPage() {
             });
         }
         setIsLoadingProfile(false);
+    };
+
+    const fetchUserProfile = async () => {
+        setIsLoadingUser(true);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            const { data: profile } = await supabase
+                .from('user_profiles')
+                .select('full_name, role')
+                .eq('id', user.id)
+                .single();
+            if (profile) {
+                setUserProfile({
+                    fullName: profile.full_name || '',
+                    role: profile.role || 'staff'
+                });
+            }
+        }
+        setIsLoadingUser(false);
     };
 
     const fetchReportData = async () => {
@@ -136,6 +163,26 @@ export default function SettingsPage() {
         setIsLoadingProfile(false);
     };
 
+    const handleUpdateUser = async () => {
+        setIsLoadingUser(true);
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+            const { error } = await supabase
+                .from('user_profiles')
+                .update({ full_name: userProfile.fullName })
+                .eq('id', user.id);
+
+            if (error) {
+                toast.error('Failed to update user profile');
+            } else {
+                toast.success('User profile updated');
+                // Force a reload to update the header
+                window.location.reload();
+            }
+        }
+        setIsLoadingUser(false);
+    };
+
     const handleDeleteData = async () => {
         if (confirmText !== 'DELETE') {
             toast.error("Please type DELETE to confirm");
@@ -167,6 +214,39 @@ export default function SettingsPage() {
             </div>
 
             <div className="grid gap-6 md:grid-cols-2">
+
+                {/* 0. User Settings (New) */}
+                <Card className="print:hidden">
+                    <CardHeader>
+                        <CardTitle className="flex items-center gap-2">
+                            <User className="h-5 w-5" />
+                            User Settings
+                        </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <div className="grid gap-2">
+                            <Label>Display Name (Shop ID)</Label>
+                            <Input
+                                value={userProfile.fullName}
+                                onChange={(e) => setUserProfile({ ...userProfile, fullName: e.target.value })}
+                                placeholder="Your Name or ID"
+                            />
+                            <p className="text-xs text-muted-foreground">This name will be displayed in the header.</p>
+                        </div>
+                        <div className="grid gap-2">
+                            <Label>Role</Label>
+                            <Input
+                                value={userProfile.role}
+                                disabled
+                                className="bg-muted"
+                            />
+                        </div>
+                        <Button onClick={handleUpdateUser} disabled={isLoadingUser} className="w-full">
+                            <Save className="mr-2 h-4 w-4" />
+                            {isLoadingUser ? 'Saving...' : 'Save User Profile'}
+                        </Button>
+                    </CardContent>
+                </Card>
 
                 {/* 1. Shop Profile Settings */}
                 <Card className="print:hidden">
