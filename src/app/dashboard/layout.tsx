@@ -4,7 +4,7 @@ import * as React from 'react';
 
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
-import { LayoutDashboard, Store, Users, FileBarChart, LogOut, Menu, Package, Truck, Home } from 'lucide-react';
+import { LayoutDashboard, Store, Users, FileBarChart, LogOut, Menu, Package, Truck, Home, Receipt } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { ResizableHandle, ResizablePanel, ResizablePanelGroup } from "@/components/ui/resizable";
 // @ts-ignore
@@ -19,6 +19,8 @@ const sidebarItems = [
     { href: '/dashboard/vendors', label: 'Vendor Management', icon: Truck },
     { href: '/dashboard/inventory', label: 'Inventory Level', icon: FileBarChart },
     { href: '/dashboard/users', label: 'User Access', icon: Users },
+    { href: '/dashboard/sales', label: 'Sales History', icon: Receipt },
+    { href: '/dashboard/purchases', label: 'Purchase History', icon: Truck },
 ];
 
 import AuthGuard from '@/components/auth/AuthGuard';

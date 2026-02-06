@@ -12,7 +12,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
     return (
         <div className="flex flex-col h-screen bg-background font-mono text-sm">
             {/* Top Header - Printed on Invoices */}
-            <header className="flex-none border-b border-border bg-card px-6 py-4 flex items-center justify-between print:flex print:border-none">
+            <header className="flex-none border-b border-border bg-card px-2 py-2 md:px-6 md:py-4 flex items-center justify-between print:flex print:border-none">
 
                 {/* Left Logo - SP */}
                 <div className="flex items-center gap-2">
@@ -23,16 +23,16 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                             alt="SP Fresh Chicken"
                             width={80}
                             height={80}
-                            className="block"
+                            className="block w-12 h-12 md:w-20 md:h-20"
                             priority
                         />
                     </div>
                 </div>
 
                 {/* Center - Title/Nav (Hidden on print usually, but let's keep title) */}
-                <div className="flex-1 text-center px-4">
-                    <h1 className="text-2xl font-bold uppercase tracking-wider">SP FAMILY VENTURES EST ENTERPRISE</h1>
-                    <p className="text-muted-foreground text-xs mt-1">Inventory & Sales Management System</p>
+                <div className="flex-1 text-center px-1 md:px-4">
+                    <h1 className="text-xs md:text-2xl font-bold uppercase tracking-wider leading-tight">SP FAMILY VENTURES EST ENTERPRISE</h1>
+                    <p className="text-muted-foreground text-[10px] md:text-xs mt-1 hidden md:block">Inventory & Sales Management System</p>
                 </div>
 
                 {/* Right Logo - Poultry */}
@@ -42,7 +42,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                         alt="Fresh Poultry"
                         width={80}
                         height={80}
-                        className="block"
+                        className="block w-12 h-12 md:w-20 md:h-20"
                         priority
                     />
                 </div>
@@ -56,7 +56,7 @@ export default function DashboardLayout({ children }: DashboardLayoutProps) {
                         <NavItem href="/dashboard" icon={<LayoutDashboard className="w-4 h-4" />} label="Overview" />
                         <NavItem href="/shop" icon={<ShoppingBasket className="w-4 h-4" />} label="Shop / Order" />
                         <NavItem href="/dashboard/products" icon={<Package className="w-4 h-4" />} label="Products" />
-                        <NavItem href="/dashboard/orders" icon={<Receipt className="w-4 h-4" />} label="Orders" />
+                        <NavItem href="/dashboard/sales" icon={<Receipt className="w-4 h-4" />} label="Orders" />
 
                         <div className="h-px bg-border my-4" />
                         <NavItem href="/dashboard/vendors" icon={<Truck className="w-4 h-4" />} label="Vendors" />
