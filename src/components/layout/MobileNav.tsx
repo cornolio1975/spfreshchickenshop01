@@ -39,7 +39,7 @@ export default function MobileNav() {
                             <MobileLink href="/dashboard/products" onClick={() => setIsOpen(false)} icon={<Package className="w-5 h-5" />}>
                                 Products
                             </MobileLink>
-                            <MobileLink href="/dashboard/orders" onClick={() => setIsOpen(false)} icon={<Receipt className="w-5 h-5" />}>
+                            <MobileLink href="/dashboard/sales" onClick={() => setIsOpen(false)} icon={<Receipt className="w-5 h-5" />}>
                                 Orders
                             </MobileLink>
 
