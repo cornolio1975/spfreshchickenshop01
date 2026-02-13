@@ -15,8 +15,8 @@ export default function DashboardPage() {
                         <DollarSign className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">RM 45,231.89</div>
-                        <p className="text-xs text-muted-foreground">+20.1% from last month</p>
+                        <div className="text-2xl font-bold">RM 0.00</div>
+                        <p className="text-xs text-muted-foreground">No data recorded</p>
                     </CardContent>
                 </Card>
                 <Card>
@@ -25,8 +25,8 @@ export default function DashboardPage() {
                         <Store className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">12</div>
-                        <p className="text-xs text-muted-foreground">+2 new shops this month</p>
+                        <div className="text-2xl font-bold">1</div>
+                        <p className="text-xs text-muted-foreground">Main Shop Active</p>
                     </CardContent>
                 </Card>
                 <Card>
@@ -35,8 +35,8 @@ export default function DashboardPage() {
                         <ShoppingCart className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">+573</div>
-                        <p className="text-xs text-muted-foreground">+201 since last hour</p>
+                        <div className="text-2xl font-bold">0</div>
+                        <p className="text-xs text-muted-foreground">No sales today</p>
                     </CardContent>
                 </Card>
                 <Card>
@@ -45,8 +45,8 @@ export default function DashboardPage() {
                         <TrendingUp className="h-4 w-4 text-muted-foreground" />
                     </CardHeader>
                     <CardContent>
-                        <div className="text-2xl font-bold">+54</div>
-                        <p className="text-xs text-muted-foreground">Staff active across shops</p>
+                        <div className="text-2xl font-bold">1</div>
+                        <p className="text-xs text-muted-foreground">System Online</p>
                     </CardContent>
                 </Card>
             </div>
