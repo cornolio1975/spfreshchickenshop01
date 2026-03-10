@@ -3,7 +3,7 @@
 import * as React from "react";
 import Link from "next/link";
 import { useSearchParams, usePathname, useRouter } from "next/navigation";
-import { ShoppingBasket, BarChart3, Package, Settings, LogOut, Menu, ArrowLeft, Home } from "lucide-react";
+import { ShoppingBasket, BarChart3, Package, Settings, LogOut, Menu, ArrowLeft, Home, Receipt } from "lucide-react";
 import Image from "next/image";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
@@ -47,6 +47,7 @@ export default function ShopLayout({
     const navItems = [
         { name: "POS / Sale", href: `/shop/pos`, icon: ShoppingBasket },
         { name: "Inventory", href: `/shop/stock`, icon: Package },
+        { name: "Expenses", href: `/shop/expenses`, icon: Receipt },
         { name: "Reports", href: `/shop/reports`, icon: BarChart3 },
         { name: "Settings", href: `/shop/settings`, icon: Settings },
     ];
