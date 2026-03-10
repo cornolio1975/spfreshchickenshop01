@@ -20,6 +20,7 @@ export default function ReportsPage() {
 
     const [sales, setSales] = useState<Sale[]>([]);
     const [purchases, setPurchases] = useState<any[]>([]);
+    const [losses, setLosses] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     const [dateRange, setDateRange] = useState({
@@ -30,6 +31,7 @@ export default function ReportsPage() {
     const [stats, setStats] = useState({
         revenue: 0,
         cost: 0,
+        loss_value: 0,
         profit: 0,
         count: 0
     });
@@ -40,7 +42,7 @@ export default function ReportsPage() {
 
     useEffect(() => {
         calculateStats();
-    }, [sales, purchases, dateRange]);
+    }, [sales, purchases, losses, dateRange]);
 
     const fetchAllData = async () => {
         setIsLoading(true);
@@ -48,23 +50,27 @@ export default function ReportsPage() {
         // Parallel Fetch: Sales & Purchases
         let salesQuery = supabase.from('sales').select('id, total_amount, created_at').order('created_at', { ascending: false });
         let purchasesQuery = supabase.from('purchases').select('id, total_cost, created_at');
+        let lossesQuery = supabase.from('inventory_adjustments').select('id, total_value, created_at, adjustment_date');
 
         if (shopId) {
             salesQuery = salesQuery.eq('shop_id', shopId);
             purchasesQuery = purchasesQuery.eq('shop_id', shopId);
+            lossesQuery = lossesQuery.eq('shop_id', shopId);
         }
 
-        const [salesRes, purchasesRes] = await Promise.all([
+        const [salesRes, purchasesRes, lossesRes] = await Promise.all([
             salesQuery,
-            purchasesQuery
+            purchasesQuery,
+            lossesQuery
         ]);
 
-        if (salesRes.error || purchasesRes.error) {
-            console.error(salesRes.error, purchasesRes.error);
+        if (salesRes.error || purchasesRes.error || lossesRes.error) {
+            console.error('Fetch errors:', salesRes.error, purchasesRes.error, lossesRes.error);
             toast.error('Failed to load data');
         } else {
             setSales(salesRes.data || []);
             setPurchases(purchasesRes.data || []);
+            setLosses(lossesRes.data || []);
             // Stats calculation triggered by useEffect
         }
         setIsLoading(false);
@@ -76,6 +82,7 @@ export default function ReportsPage() {
 
         let revenue = 0;
         let cost = 0;
+        let loss_value = 0;
         let count = 0;
 
         // Filter Sales
@@ -97,10 +104,20 @@ export default function ReportsPage() {
             cost += Number(p.total_cost);
         });
 
+        // Filter Losses
+        losses.filter(l => {
+            const dStr = l.adjustment_date ? `${l.adjustment_date}T12:00:00` : l.created_at;
+            const d = new Date(dStr);
+            return d >= start && d <= end;
+        }).forEach(l => {
+            loss_value += Number(l.total_value || 0);
+        });
+
         setStats({
             revenue,
             cost,
-            profit: revenue - cost,
+            loss_value,
+            profit: revenue - cost - loss_value,
             count
         });
     };
@@ -150,12 +167,12 @@ export default function ReportsPage() {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid gap-4 md:grid-cols-4">
+            <div className="grid gap-4 md:grid-cols-5">
                 <Card className="bg-primary/5 border-primary/20">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-primary">Net Profit</CardTitle>
-                        <span className="text-primary/70 font-bold text-xs">
-                            (Revenue - Cost)
+                        <span className="text-primary/70 font-bold text-[10px] md:text-xs text-right leading-tight">
+                            (Rev - Cost - Loss)
                         </span>
                     </CardHeader>
                     <CardContent>
@@ -179,6 +196,14 @@ export default function ReportsPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-red-600">{formatMYCurrency(stats.cost)}</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-red-800">Total Loss</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-red-800">{formatMYCurrency(stats.loss_value)}</div>
                     </CardContent>
                 </Card>
                 <Card>

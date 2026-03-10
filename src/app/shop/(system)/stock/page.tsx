@@ -42,6 +42,11 @@ export default function StockPage() {
     const [vendors, setVendors] = useState<Vendor[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
+    const [recentPurchases, setRecentPurchases] = useState<any[]>([]);
+    const [recentLosses, setRecentLosses] = useState<any[]>([]);
+    const [editingLoss, setEditingLoss] = useState<any>(null);
+    const [editingPurchase, setEditingPurchase] = useState<any>(null);
+
     // Modals
     const [isPurchaseModalOpen, setIsPurchaseModalOpen] = useState(false);
     const [isLossModalOpen, setIsLossModalOpen] = useState(false);
@@ -60,6 +65,8 @@ export default function StockPage() {
     const [lossData, setLossData] = useState({
         product_id: '',
         quantity: '',
+        unit_cost: '',
+        adjustment_date: new Date().toISOString().split('T')[0],
         reason: 'Damaged',
         remarks: ''
     });
@@ -116,8 +123,33 @@ export default function StockPage() {
         if (shopId) {
             fetchModels();
             fetchVendors();
+            fetchHistory();
         }
     }, [shopId, search]);
+
+    const fetchHistory = async () => {
+        if (!shopId) return;
+
+        // Fetch recent purchases
+        const { data: pData } = await supabase
+            .from('purchases')
+            .select('*, vendors(name), purchase_items(*, products(name, unit_type))')
+            .eq('shop_id', shopId)
+            .order('created_at', { ascending: false })
+            .limit(10);
+
+        setRecentPurchases(pData || []);
+
+        // Fetch recent losses
+        const { data: lData } = await supabase
+            .from('inventory_adjustments')
+            .select('*, products(name, unit_type)')
+            .eq('shop_id', shopId)
+            .order('created_at', { ascending: false })
+            .limit(10);
+
+        setRecentLosses(lData || []);
+    };
 
     // HANDLER: Record Purchase (Stock In)
     const handlePurchase = async (e: React.FormEvent) => {
@@ -210,7 +242,10 @@ export default function StockPage() {
                 product_id: lossData.product_id,
                 quantity: qty, // Positive number representing loss amount
                 reason: lossData.reason,
-                remarks: lossData.remarks
+                remarks: lossData.remarks,
+                adjustment_date: lossData.adjustment_date,
+                unit_cost: parseFloat(lossData.unit_cost) || 0,
+                total_value: qty * (parseFloat(lossData.unit_cost) || 0)
             });
             if (adjErr) throw adjErr;
 
@@ -235,11 +270,51 @@ export default function StockPage() {
 
             toast.success('Loss Reported');
             setIsLossModalOpen(false);
-            setLossData({ product_id: '', quantity: '', reason: 'Damaged', remarks: '' });
+            setLossData({ product_id: '', quantity: '', unit_cost: '', adjustment_date: new Date().toISOString().split('T')[0], reason: 'Damaged', remarks: '' });
             fetchModels();
+            fetchHistory();
 
         } catch (error: any) {
             toast.error(error.message);
+        }
+    };
+
+    const handleUpdateLoss = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            const { error } = await supabase.from('inventory_adjustments').update({
+                quantity: parseFloat(editingLoss.quantity),
+                unit_cost: parseFloat(editingLoss.unit_cost),
+                total_value: parseFloat(editingLoss.quantity) * parseFloat(editingLoss.unit_cost),
+                adjustment_date: editingLoss.adjustment_date,
+                reason: editingLoss.reason,
+                remarks: editingLoss.remarks
+            }).eq('id', editingLoss.id);
+
+            if (error) throw error;
+            toast.success('Loss record updated');
+            setEditingLoss(null);
+            fetchHistory();
+        } catch (err: any) {
+            toast.error(err.message);
+        }
+    };
+
+    const handleUpdatePurchase = async (e: React.FormEvent) => {
+        e.preventDefault();
+        try {
+            const { error: pErr } = await supabase.from('purchases').update({
+                total_cost: parseFloat(editingPurchase.total_cost),
+                purchase_date: editingPurchase.purchase_date,
+                remarks: editingPurchase.remarks
+            }).eq('id', editingPurchase.id);
+
+            if (pErr) throw pErr;
+            toast.success('Purchase record updated (Note: Item quantity edits require Admin Dashboard)');
+            setEditingPurchase(null);
+            fetchHistory();
+        } catch (err: any) {
+            toast.error(err.message);
         }
     };
 
@@ -374,19 +449,36 @@ export default function StockPage() {
                                         {products.map(p => <option key={p.id} value={p.id}>{p.name}</option>)}
                                     </select>
                                 </div>
-                                <div className="grid gap-2">
-                                    <Label>Quantity</Label>
-                                    <Input type="number" step="0.01" value={lossData.quantity} onChange={e => setLossData({ ...lossData, quantity: e.target.value })} />
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label>Loss Date</Label>
+                                        <Input
+                                            type="date"
+                                            value={lossData.adjustment_date}
+                                            onChange={e => setLossData({ ...lossData, adjustment_date: e.target.value })}
+                                            required
+                                        />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label>Reason</Label>
+                                        <select className="flex h-10 w-full border rounded px-3" value={lossData.reason} onChange={e => setLossData({ ...lossData, reason: e.target.value })}>
+                                            <option value="Damaged">Damaged</option>
+                                            <option value="Dead">Dead</option>
+                                            <option value="Theft">Theft</option>
+                                            <option value="Expired">Expired</option>
+                                            <option value="Other">Other</option>
+                                        </select>
+                                    </div>
                                 </div>
-                                <div className="grid gap-2">
-                                    <Label>Reason</Label>
-                                    <select className="flex h-10 w-full border rounded px-3" value={lossData.reason} onChange={e => setLossData({ ...lossData, reason: e.target.value })}>
-                                        <option value="Damaged">Damaged</option>
-                                        <option value="Dead">Dead</option>
-                                        <option value="Theft">Theft</option>
-                                        <option value="Expired">Expired</option>
-                                        <option value="Other">Other</option>
-                                    </select>
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label>Quantity</Label>
+                                        <Input type="number" step="0.01" value={lossData.quantity} onChange={e => setLossData({ ...lossData, quantity: e.target.value })} />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label>Unit Cost</Label>
+                                        <Input type="number" step="0.01" value={lossData.unit_cost} onChange={e => setLossData({ ...lossData, unit_cost: e.target.value })} />
+                                    </div>
                                 </div>
                                 <Input placeholder="Remarks" value={lossData.remarks} onChange={e => setLossData({ ...lossData, remarks: e.target.value })} />
                                 <div className="flex justify-end gap-2 pt-2">
@@ -398,6 +490,136 @@ export default function StockPage() {
                     </Card>
                 </div>
             )}
+
+            {/* EDIT PURCHASE MODAL */}
+            {editingPurchase && (
+                <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+                    <Card className="w-full max-w-md bg-background my-8">
+                        <CardHeader><CardTitle>Edit Recent Purchase</CardTitle></CardHeader>
+                        <CardContent>
+                            <form onSubmit={handleUpdatePurchase} className="space-y-4">
+                                <div className="grid gap-2">
+                                    <Label>Purchase Date</Label>
+                                    <Input type="date" value={editingPurchase.purchase_date || editingPurchase.created_at.split('T')[0]} onChange={e => setEditingPurchase({ ...editingPurchase, purchase_date: e.target.value })} />
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label>Total Cost (RM)</Label>
+                                    <Input type="number" step="0.01" value={editingPurchase.total_cost || ''} onChange={e => setEditingPurchase({ ...editingPurchase, total_cost: e.target.value })} />
+                                </div>
+                                <Input placeholder="Remarks" value={editingPurchase.remarks || ''} onChange={e => setEditingPurchase({ ...editingPurchase, remarks: e.target.value })} />
+                                <p className="text-xs text-muted-foreground italic">To edit specific item quantities and recalculate global inventory, please use the main Purchase History page.</p>
+                                <div className="flex justify-end gap-2 pt-2">
+                                    <Button type="button" variant="outline" onClick={() => setEditingPurchase(null)}>Cancel</Button>
+                                    <Button type="submit">Save Changes</Button>
+                                </div>
+                            </form>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
+            {/* EDIT LOSS MODAL */}
+            {editingLoss && (
+                <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4">
+                    <Card className="w-full max-w-md bg-background my-8">
+                        <CardHeader><CardTitle>Edit Loss Record</CardTitle></CardHeader>
+                        <CardContent>
+                            <form onSubmit={handleUpdateLoss} className="space-y-4">
+                                <div className="grid gap-2">
+                                    <Label>Loss Date</Label>
+                                    <Input type="date" value={editingLoss.adjustment_date || editingLoss.created_at.split('T')[0]} onChange={e => setEditingLoss({ ...editingLoss, adjustment_date: e.target.value })} />
+                                </div>
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="grid gap-2">
+                                        <Label>Quantity</Label>
+                                        <Input type="number" step="0.01" value={editingLoss.quantity || ''} onChange={e => setEditingLoss({ ...editingLoss, quantity: e.target.value })} />
+                                    </div>
+                                    <div className="grid gap-2">
+                                        <Label>Unit Cost</Label>
+                                        <Input type="number" step="0.01" value={editingLoss.unit_cost || ''} onChange={e => setEditingLoss({ ...editingLoss, unit_cost: e.target.value })} />
+                                    </div>
+                                </div>
+                                <div className="grid gap-2">
+                                    <Label>Reason</Label>
+                                    <select className="flex h-10 w-full border rounded px-3" value={editingLoss.reason} onChange={e => setEditingLoss({ ...editingLoss, reason: e.target.value })}>
+                                        <option value="Damaged">Damaged</option>
+                                        <option value="Dead">Dead</option>
+                                        <option value="Theft">Theft</option>
+                                        <option value="Expired">Expired</option>
+                                        <option value="Other">Other</option>
+                                    </select>
+                                </div>
+                                <Input placeholder="Remarks" value={editingLoss.remarks || ''} onChange={e => setEditingLoss({ ...editingLoss, remarks: e.target.value })} />
+                                <div className="flex justify-end gap-2 pt-2">
+                                    <Button type="button" variant="outline" onClick={() => setEditingLoss(null)}>Cancel</Button>
+                                    <Button type="submit">Save Changes</Button>
+                                </div>
+                            </form>
+                        </CardContent>
+                    </Card>
+                </div>
+            )}
+
+            {/* HISTORY TABLES */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-8">
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg">Recent Purchases In</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Date</TableHead>
+                                    <TableHead>Total</TableHead>
+                                    <TableHead className="text-right">Action</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {recentPurchases.map(p => (
+                                    <TableRow key={p.id}>
+                                        <TableCell>{p.purchase_date || p.created_at?.split('T')[0]}</TableCell>
+                                        <TableCell>RM {p.total_cost?.toFixed(2)}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="sm" onClick={() => setEditingPurchase(p)}><Pencil className="h-4 w-4" /></Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+
+                <Card>
+                    <CardHeader>
+                        <CardTitle className="text-lg text-red-600">Recent Losses Out</CardTitle>
+                    </CardHeader>
+                    <CardContent className="p-0">
+                        <Table>
+                            <TableHeader>
+                                <TableRow>
+                                    <TableHead>Date</TableHead>
+                                    <TableHead>Product</TableHead>
+                                    <TableHead>Value</TableHead>
+                                    <TableHead className="text-right">Action</TableHead>
+                                </TableRow>
+                            </TableHeader>
+                            <TableBody>
+                                {recentLosses.map(l => (
+                                    <TableRow key={l.id}>
+                                        <TableCell>{l.adjustment_date || l.created_at?.split('T')[0]}</TableCell>
+                                        <TableCell>{l.products?.name} <span className="text-xs text-muted-foreground">({l.quantity})</span></TableCell>
+                                        <TableCell>RM {l.total_value?.toFixed(2)}</TableCell>
+                                        <TableCell className="text-right">
+                                            <Button variant="ghost" size="sm" onClick={() => setEditingLoss(l)}><Pencil className="h-4 w-4" /></Button>
+                                        </TableCell>
+                                    </TableRow>
+                                ))}
+                            </TableBody>
+                        </Table>
+                    </CardContent>
+                </Card>
+            </div>
         </div>
     );
 }
