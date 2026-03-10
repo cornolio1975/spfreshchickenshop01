@@ -21,6 +21,7 @@ export default function ReportsPage() {
     const [sales, setSales] = useState<Sale[]>([]);
     const [purchases, setPurchases] = useState<any[]>([]);
     const [losses, setLosses] = useState<any[]>([]);
+    const [expenses, setExpenses] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(true);
 
     const [dateRange, setDateRange] = useState({
@@ -32,6 +33,7 @@ export default function ReportsPage() {
         revenue: 0,
         cost: 0,
         loss_value: 0,
+        total_expenses: 0,
         profit: 0,
         count: 0
     });
@@ -42,7 +44,7 @@ export default function ReportsPage() {
 
     useEffect(() => {
         calculateStats();
-    }, [sales, purchases, losses, dateRange]);
+    }, [sales, purchases, losses, expenses, dateRange]);
 
     const fetchAllData = async () => {
         setIsLoading(true);
@@ -51,26 +53,30 @@ export default function ReportsPage() {
         let salesQuery = supabase.from('sales').select('id, total_amount, created_at').order('created_at', { ascending: false });
         let purchasesQuery = supabase.from('purchases').select('id, total_cost, created_at');
         let lossesQuery = supabase.from('inventory_adjustments').select('id, total_value, created_at, adjustment_date');
+        let expensesQuery = supabase.from('shop_expenses').select('id, amount, expense_date');
 
         if (shopId) {
             salesQuery = salesQuery.eq('shop_id', shopId);
             purchasesQuery = purchasesQuery.eq('shop_id', shopId);
             lossesQuery = lossesQuery.eq('shop_id', shopId);
+            expensesQuery = expensesQuery.eq('shop_id', shopId);
         }
 
-        const [salesRes, purchasesRes, lossesRes] = await Promise.all([
+        const [salesRes, purchasesRes, lossesRes, expensesRes] = await Promise.all([
             salesQuery,
             purchasesQuery,
-            lossesQuery
+            lossesQuery,
+            expensesQuery
         ]);
 
-        if (salesRes.error || purchasesRes.error || lossesRes.error) {
-            console.error('Fetch errors:', salesRes.error, purchasesRes.error, lossesRes.error);
+        if (salesRes.error || purchasesRes.error || lossesRes.error || expensesRes.error) {
+            console.error('Fetch errors:', salesRes.error, purchasesRes.error, lossesRes.error, expensesRes.error);
             toast.error('Failed to load data');
         } else {
             setSales(salesRes.data || []);
             setPurchases(purchasesRes.data || []);
             setLosses(lossesRes.data || []);
+            setExpenses(expensesRes.data || []);
             // Stats calculation triggered by useEffect
         }
         setIsLoading(false);
@@ -83,6 +89,7 @@ export default function ReportsPage() {
         let revenue = 0;
         let cost = 0;
         let loss_value = 0;
+        let total_expenses = 0;
         let count = 0;
 
         // Filter Sales
@@ -113,11 +120,20 @@ export default function ReportsPage() {
             loss_value += Number(l.total_value || 0);
         });
 
+        // Filter Expenses
+        expenses.filter(e => {
+            const d = new Date(`${e.expense_date}T12:00:00`);
+            return d >= start && d <= end;
+        }).forEach(e => {
+            total_expenses += Number(e.amount || 0);
+        });
+
         setStats({
             revenue,
             cost,
             loss_value,
-            profit: revenue - cost - loss_value,
+            total_expenses,
+            profit: revenue - cost - loss_value - total_expenses,
             count
         });
     };
@@ -167,12 +183,12 @@ export default function ReportsPage() {
             </div>
 
             {/* Stats Cards */}
-            <div className="grid gap-4 md:grid-cols-5">
-                <Card className="bg-primary/5 border-primary/20">
+            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-6">
+                <Card className="bg-primary/5 border-primary/20 hover:bg-primary/10 transition-colors">
                     <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                         <CardTitle className="text-sm font-medium text-primary">Net Profit</CardTitle>
-                        <span className="text-primary/70 font-bold text-[10px] md:text-xs text-right leading-tight">
-                            (Rev - Cost - Loss)
+                        <span className="text-primary/70 font-bold text-[10px] md:text-[10px] text-right leading-tight">
+                            (Rev - Cost - Loss - Exp)
                         </span>
                     </CardHeader>
                     <CardContent>
@@ -204,6 +220,14 @@ export default function ReportsPage() {
                     </CardHeader>
                     <CardContent>
                         <div className="text-2xl font-bold text-red-800">{formatMYCurrency(stats.loss_value)}</div>
+                    </CardContent>
+                </Card>
+                <Card>
+                    <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+                        <CardTitle className="text-sm font-medium text-orange-600">Total Expenses</CardTitle>
+                    </CardHeader>
+                    <CardContent>
+                        <div className="text-2xl font-bold text-orange-600">{formatMYCurrency(stats.total_expenses)}</div>
                     </CardContent>
                 </Card>
                 <Card>
